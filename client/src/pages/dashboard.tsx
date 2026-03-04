@@ -1,6 +1,7 @@
 import { useClients } from "@/hooks/use-clients";
 import { useProjects } from "@/hooks/use-projects";
 import { useCharges } from "@/hooks/use-charges";
+import { useLanguage } from "@/hooks/use-language";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, FolderKanban, DollarSign, Activity } from "lucide-react";
 import { formatMoney, calculateChargeFinal } from "@/lib/format";
@@ -11,6 +12,7 @@ export default function Dashboard() {
   const { data: clients, isLoading: loadingClients } = useClients();
   const { data: projects, isLoading: loadingProjects } = useProjects();
   const { data: charges, isLoading: loadingCharges } = useCharges();
+  const { t } = useLanguage();
 
   const totalClients = clients?.length || 0;
   const activeProjects = projects?.filter(p => p.status === 'active').length || 0;
@@ -25,15 +27,15 @@ export default function Dashboard() {
     <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Welcome back. Here's what's happening today.</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("dashboard.title")}</h1>
+          <p className="text-muted-foreground mt-1">{t("dashboard.welcome")}</p>
         </div>
         <div className="flex gap-3">
           <Link href="/clients">
-            <Button variant="outline">View Clients</Button>
+            <Button variant="outline">{t("dashboard.viewClients")}</Button>
           </Link>
           <Link href="/projects">
-            <Button>View Projects</Button>
+            <Button>{t("dashboard.viewProjects")}</Button>
           </Link>
         </div>
       </div>
@@ -49,45 +51,45 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="hover-elevate transition-all">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Revenue</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t("dashboard.totalRevenue")}</CardTitle>
                 <DollarSign className="w-4 h-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{formatMoney(totalRevenue)}</div>
-                <p className="text-xs text-muted-foreground mt-1">Across all time</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("dashboard.revenueSuffix")}</p>
               </CardContent>
             </Card>
 
             <Card className="hover-elevate transition-all">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Active Projects</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t("dashboard.activeProjects")}</CardTitle>
                 <Activity className="w-4 h-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{activeProjects}</div>
-                <p className="text-xs text-muted-foreground mt-1">Currently in progress</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("dashboard.projectsSuffix")}</p>
               </CardContent>
             </Card>
 
             <Card className="hover-elevate transition-all">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Clients</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t("dashboard.totalClients")}</CardTitle>
                 <Users className="w-4 h-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalClients}</div>
-                <p className="text-xs text-muted-foreground mt-1">Registered accounts</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("dashboard.clientsSuffix")}</p>
               </CardContent>
             </Card>
 
             <Card className="hover-elevate transition-all">
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Projects</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t("dashboard.totalProjects")}</CardTitle>
                 <FolderKanban className="w-4 h-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{projects?.length || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">Active and completed</p>
+                <p className="text-xs text-muted-foreground mt-1">{t("dashboard.allProjectsSuffix")}</p>
               </CardContent>
             </Card>
           </div>
@@ -95,7 +97,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
             <Card className="col-span-1 shadow-sm border-border/50">
               <CardHeader>
-                <CardTitle>Recent Projects</CardTitle>
+                <CardTitle>{t("dashboard.recentProjects")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -128,7 +130,7 @@ export default function Dashboard() {
 
             <Card className="col-span-1 shadow-sm border-border/50">
               <CardHeader>
-                <CardTitle>Recent Clients</CardTitle>
+                <CardTitle>{t("dashboard.recentClients")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -141,7 +143,7 @@ export default function Dashboard() {
                         <div className="text-sm text-muted-foreground mt-0.5">{client.company || 'No company specified'}</div>
                       </div>
                       <Link href={`/clients/${client.id}`}>
-                        <Button variant="ghost" size="sm" className="h-8">View</Button>
+                        <Button variant="ghost" size="sm" className="h-8">{t("common.view")}</Button>
                       </Link>
                     </div>
                   ))}

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useClients, useDeleteClient } from "@/hooks/use-clients";
+import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ClientForm } from "@/components/forms/client-form";
-import { UserPlus, Building, Mail, ChevronRight, Trash2, Edit } from "lucide-react";
+import { UserPlus, Building, Mail, ChevronRight, Trash2, Edit, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -23,6 +24,7 @@ export default function ClientsPage() {
   const { data: clients, isLoading } = useClients();
   const deleteClient = useDeleteClient();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<number | null>(null);
 
@@ -39,15 +41,15 @@ export default function ClientsPage() {
     <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Clients</h1>
-          <p className="text-muted-foreground mt-1">Manage your client relationships</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("clients.title")}</h1>
+          <p className="text-muted-foreground mt-1">{t("clients.subtitle")}</p>
         </div>
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="hover-elevate shadow-sm">
               <UserPlus className="w-4 h-4 mr-2" />
-              Add Client
+              {t("clients.add")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
@@ -70,12 +72,12 @@ export default function ClientsPage() {
           <div className="bg-primary/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
             <Users className="w-8 h-8 text-primary/40" />
           </div>
-          <h3 className="text-lg font-medium">No clients yet</h3>
+          <h3 className="text-lg font-medium">{t("clients.noClients")}</h3>
           <p className="text-muted-foreground mt-1 max-w-sm mx-auto">
-            Add your first client to start tracking projects and charges.
+            {t("clients.noClientsDesc")}
           </p>
           <Button onClick={() => setIsCreateOpen(true)} variant="outline" className="mt-6">
-            Add Client
+            {t("clients.add")}
           </Button>
         </div>
       ) : (
@@ -142,7 +144,7 @@ export default function ClientsPage() {
                 <div className="mt-6 pt-4 border-t border-border/50 flex justify-end">
                   <Link href={`/clients/${client.id}`}>
                     <Button variant="ghost" size="sm" className="w-full justify-between group/btn text-muted-foreground hover:text-foreground hover:bg-primary/5">
-                      View Details
+                      {t("common.view")}
                       <ChevronRight className="w-4 h-4 transition-transform group-hover/btn:translate-x-1" />
                     </Button>
                   </Link>
@@ -155,6 +157,3 @@ export default function ClientsPage() {
     </div>
   );
 }
-
-// Importing Users for the empty state
-import { Users } from "lucide-react";

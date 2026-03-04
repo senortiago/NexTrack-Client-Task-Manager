@@ -3,6 +3,7 @@ import { useClients } from "@/hooks/use-clients";
 import { useProjects } from "@/hooks/use-projects";
 import { useCharges } from "@/hooks/use-charges";
 import { useTasks } from "@/hooks/use-tasks";
+import { useLanguage } from "@/hooks/use-language";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatMoney, calculateChargeFinal, calculateChargeDiscount } from "@/lib/format";
@@ -27,6 +28,7 @@ export default function ReportsPage() {
   const { data: allProjects } = useProjects();
   const { data: allCharges, isLoading: loadingCharges } = useCharges();
   const { data: allTasks } = useTasks();
+  const { t } = useLanguage();
 
   const [selectedClientId, setSelectedClientId] = useState<string>("all");
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
@@ -61,17 +63,17 @@ export default function ReportsPage() {
     setIsExporting("pdf");
     try {
       const doc = new jsPDF();
-      const clientName = selectedClientId === "all" ? "All Clients" : clients?.find(c => c.id.toString() === selectedClientId)?.name || "";
-      const projectName = selectedProjectId === "all" ? "All Projects" : allProjects?.find(p => p.id.toString() === selectedProjectId)?.name || "";
+      const clientName = selectedClientId === "all" ? t("common.all") : clients?.find(c => c.id.toString() === selectedClientId)?.name || "";
+      const projectName = selectedProjectId === "all" ? t("common.all") : allProjects?.find(p => p.id.toString() === selectedProjectId)?.name || "";
 
       doc.setFontSize(20);
-      doc.text("Financial Report", 14, 22);
+      doc.text(t("reports.title"), 14, 22);
       
       doc.setFontSize(10);
       doc.setTextColor(100);
       doc.text(`Generated on: ${format(new Date(), 'PPP')}`, 14, 30);
-      doc.text(`Client: ${clientName}`, 14, 35);
-      doc.text(`Project: ${projectName}`, 14, 40);
+      doc.text(`${t("reports.filterClient")}: ${clientName}`, 14, 35);
+      doc.text(`${t("reports.filterProject")}: ${projectName}`, 14, 40);
 
       const tableData = activeCharges.map(charge => {
         const project = allProjects?.find(p => p.id === charge.projectId);
@@ -119,8 +121,8 @@ export default function ReportsPage() {
   const exportWord = async () => {
     setIsExporting("word");
     try {
-      const clientName = selectedClientId === "all" ? "All Clients" : clients?.find(c => c.id.toString() === selectedClientId)?.name || "";
-      const projectName = selectedProjectId === "all" ? "All Projects" : allProjects?.find(p => p.id.toString() === selectedProjectId)?.name || "";
+      const clientName = selectedClientId === "all" ? t("common.all") : clients?.find(c => c.id.toString() === selectedClientId)?.name || "";
+      const projectName = selectedProjectId === "all" ? t("common.all") : allProjects?.find(p => p.id.toString() === selectedProjectId)?.name || "";
 
       const tableRows = [
         new DocxTableRow({
@@ -173,10 +175,10 @@ export default function ReportsPage() {
         sections: [{
           properties: {},
           children: [
-            new Paragraph({ text: "Financial Report", heading: HeadingLevel.HEADING_1 }),
+            new Paragraph({ text: t("reports.title"), heading: HeadingLevel.HEADING_1 }),
             new Paragraph({ text: `Generated on: ${format(new Date(), 'PPP')}` }),
-            new Paragraph({ text: `Client: ${clientName}` }),
-            new Paragraph({ text: `Project: ${projectName}` }),
+            new Paragraph({ text: `${t("reports.filterClient")}: ${clientName}` }),
+            new Paragraph({ text: `${t("reports.filterProject")}: ${projectName}` }),
             new Paragraph({ text: "" }),
             new DocxTable({
               width: { size: 100, type: WidthType.PERCENTAGE },
@@ -197,8 +199,8 @@ export default function ReportsPage() {
     <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Financial Reports</h1>
-          <p className="text-muted-foreground mt-1">Generate charge reports for clients and projects</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("reports.title")}</h1>
+          <p className="text-muted-foreground mt-1">{t("reports.subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button 
@@ -208,7 +210,7 @@ export default function ReportsPage() {
             className="gap-2"
           >
             {isExporting === "pdf" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-            Export PDF
+            {t("reports.exportPdf")}
           </Button>
           <Button 
             variant="outline" 
@@ -217,7 +219,7 @@ export default function ReportsPage() {
             className="gap-2"
           >
             {isExporting === "word" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-            Export Word
+            {t("reports.exportWord")}
           </Button>
         </div>
       </div>
@@ -226,13 +228,13 @@ export default function ReportsPage() {
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex-1 space-y-2">
-              <label className="text-sm font-medium">Filter by Client</label>
+              <label className="text-sm font-medium">{t("reports.filterClient")}</label>
               <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="All Clients" />
+                  <SelectValue placeholder={t("common.all")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Clients</SelectItem>
+                  <SelectItem value="all">{t("common.all")}</SelectItem>
                   {clients?.map(c => (
                     <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
                   ))}
@@ -240,13 +242,13 @@ export default function ReportsPage() {
               </Select>
             </div>
             <div className="flex-1 space-y-2">
-              <label className="text-sm font-medium">Filter by Project</label>
+              <label className="text-sm font-medium">{t("reports.filterProject")}</label>
               <Select value={selectedProjectId} onValueChange={setSelectedProjectId} disabled={!filteredProjects?.length && selectedClientId !== "all"}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="All Projects" />
+                  <SelectValue placeholder={t("common.all")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Projects</SelectItem>
+                  <SelectItem value="all">{t("common.all")}</SelectItem>
                   {filteredProjects?.map(p => (
                     <SelectItem key={p.id} value={p.id.toString()}>{p.name}</SelectItem>
                   ))}
@@ -259,27 +261,27 @@ export default function ReportsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="bg-muted/10 border-border/50">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Subtotal (Before Discounts)</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t("reports.subtotal")}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold">{formatMoney(subtotal)}</div></CardContent>
         </Card>
         <Card className="bg-muted/10 border-border/50">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total Discounts Applied</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t("reports.discounts")}</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-bold text-destructive">-{formatMoney(totalDiscounts)}</div></CardContent>
         </Card>
         <Card className="bg-primary text-primary-foreground border-transparent shadow-md">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-primary-foreground/80">Final Total</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-primary-foreground/80">{t("reports.finalTotal")}</CardTitle></CardHeader>
           <CardContent><div className="text-3xl font-bold">{formatMoney(total)}</div></CardContent>
         </Card>
       </div>
 
       <Card className="border-border/50 shadow-sm mt-8">
         <CardHeader>
-          <CardTitle>Detailed Breakdown</CardTitle>
-          <CardDescription>All charges matching your current filters.</CardDescription>
+          <CardTitle>{t("reports.breakdown")}</CardTitle>
+          <CardDescription>{t("reports.breakdownDesc")}</CardDescription>
         </CardHeader>
         <CardContent>
           {loadingCharges ? (
-            <div className="py-8 text-center text-muted-foreground">Loading data...</div>
+            <div className="py-8 text-center text-muted-foreground">{t("common.loading")}</div>
           ) : activeCharges.length === 0 ? (
             <div className="py-12 text-center border-t border-border/50 text-muted-foreground">
               No charges found for the selected criteria.

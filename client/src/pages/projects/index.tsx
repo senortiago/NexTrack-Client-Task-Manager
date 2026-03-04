@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useProjects, useDeleteProject } from "@/hooks/use-projects";
 import { useClients } from "@/hooks/use-clients";
+import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -26,6 +27,7 @@ export default function ProjectsPage() {
   const { data: clients } = useClients();
   const deleteProject = useDeleteProject();
   const { toast } = useToast();
+  const { t } = useLanguage();
   
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<number | null>(null);
@@ -43,15 +45,15 @@ export default function ProjectsPage() {
     <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Projects</h1>
-          <p className="text-muted-foreground mt-1">Track and manage all your active work</p>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">{t("projects.title")}</h1>
+          <p className="text-muted-foreground mt-1">{t("projects.subtitle")}</p>
         </div>
         
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="hover-elevate shadow-sm">
               <FolderPlus className="w-4 h-4 mr-2" />
-              New Project
+              {t("projects.new")}
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -74,12 +76,12 @@ export default function ProjectsPage() {
           <div className="bg-primary/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
             <FolderPlus className="w-8 h-8 text-primary/40" />
           </div>
-          <h3 className="text-lg font-medium">No projects yet</h3>
+          <h3 className="text-lg font-medium">{t("projects.noProjects")}</h3>
           <p className="text-muted-foreground mt-1 max-w-sm mx-auto">
-            Create a project to start organizing tasks and tracking charges.
+            {t("projects.noProjectsDesc")}
           </p>
           <Button onClick={() => setIsCreateOpen(true)} variant="outline" className="mt-6">
-            Create Project
+            {t("projects.new")}
           </Button>
         </div>
       ) : (

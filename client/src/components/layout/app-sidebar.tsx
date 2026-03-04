@@ -1,10 +1,12 @@
 import { Link, useLocation } from "wouter";
+import { useLanguage } from "@/hooks/use-language";
 import { 
   LayoutDashboard, 
   Users, 
   FolderKanban, 
   BarChart3,
-  Briefcase
+  Briefcase,
+  Settings
 } from "lucide-react";
 import {
   Sidebar,
@@ -18,15 +20,17 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 
-const navItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Clients", url: "/clients", icon: Users },
-  { title: "Projects", url: "/projects", icon: FolderKanban },
-  { title: "Reports", url: "/reports", icon: BarChart3 },
-];
-
 export function AppSidebar() {
   const [location] = useLocation();
+  const { t } = useLanguage();
+
+  const navItems = [
+    { title: t("nav.dashboard"), url: "/", icon: LayoutDashboard },
+    { title: t("nav.clients"), url: "/clients", icon: Users },
+    { title: t("nav.projects"), url: "/projects", icon: FolderKanban },
+    { title: t("nav.reports"), url: "/reports", icon: BarChart3 },
+    { title: t("nav.settings"), url: "/settings", icon: Settings },
+  ];
 
   return (
     <Sidebar className="border-r border-border/50">
@@ -41,7 +45,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wider text-muted-foreground mt-4 mb-2 px-4">
-            Workspace
+            {t("nav.workspace")}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
