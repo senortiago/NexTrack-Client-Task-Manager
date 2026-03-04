@@ -12,16 +12,9 @@ import { Button } from "@/components/ui/button";
 import { FileText, FileDown, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { Document, Packer, Paragraph, TextRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, AlignmentType, BorderStyle, HeadingLevel, WidthType } from "docx";
 import { saveAs } from "file-saver";
-
-// Add type augmentation for jspdf-autotable
-declare module "jspdf" {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
 
 export default function ReportsPage() {
   const { data: clients } = useClients();
@@ -99,7 +92,7 @@ export default function ReportsPage() {
         ];
       });
 
-      doc.autoTable({
+      autoTable(doc, {
         startY: 50,
         head: [['Date', 'Description', 'Project', 'Base', 'Disc.', 'Final']],
         body: tableData,
