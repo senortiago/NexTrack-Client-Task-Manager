@@ -12,8 +12,15 @@ import { Button } from "@/components/ui/button";
 import { FileText, FileDown, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { jsPDF } from "jspdf";
+import "jspdf-autotable";
 import { Document, Packer, Paragraph, TextRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, AlignmentType, BorderStyle, HeadingLevel, WidthType } from "docx";
 import { saveAs } from "file-saver";
+
+declare module "jspdf" {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+}
 
 export default function ReportsPage() {
   const { data: clients } = useClients();
@@ -54,10 +61,23 @@ export default function ReportsPage() {
   const exportPDF = () => {
     setIsExporting("pdf");
     try {
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const clientName = selectedClientId === "all" ? t("common.all") : clients?.find(c => c.id.toString() === selectedClientId)?.name || "";
       const projectName = selectedProjectId === "all" ? t("common.all") : allProjects?.find(p => p.id.toString() === selectedProjectId)?.name || "";
 
-      const tableRows = activeCharges.map(charge => {
+      // Add title and metadata (using Latin characters to avoid encoding issues)
+      doc.setFontSize(16);
+      doc.text("Financial Report", 14, 15);
+      
+      doc.setFontSize(9);
+      doc.setTextColor(100);
+      doc.text(`Generated: ${format(new Date(), 'PPP')}`, 14, 22);
+      doc.text(`Client: ${clientName}`, 14, 28);
+      doc.text(`Project: ${projectName}`, 14, 34);
+      doc.setTextColor(0);
+
+      // Prepare table data
+      const tableData = activeCharges.map(charge => {
         const project = allProjects?.find(p => p.id === charge.projectId);
         const task = allTasks?.find(t => t.id === charge.taskId);
         const finalAmount = calculateChargeFinal(charge.amount, charge.discountPercentage);
@@ -71,121 +91,57 @@ export default function ReportsPage() {
           }
         }
 
-        return `
-          <tr>
-            <td style="padding: 8px; border: 1px solid #ddd; font-size: 10px;">${charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : 'N/A'}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; font-size: 10px;">${escapeHtml(description)}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; font-size: 10px;">${escapeHtml(project?.name || 'Unknown')}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-size: 10px;">${formatMoney(charge.amount)}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-size: 10px;">${charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-'}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-weight: bold; font-size: 10px;">${formatMoney(finalAmount)}</td>
-          </tr>
-        `;
-      }).join('');
-
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
-            h1 { font-size: 24px; margin-bottom: 10px; }
-            p { margin: 4px 0; font-size: 12px; color: #666; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th { background-color: #f0f0f0; padding: 10px; border: 1px solid #ddd; text-align: left; font-weight: bold; font-size: 11px; }
-            td { padding: 8px; border: 1px solid #ddd; font-size: 10px; }
-            .summary { margin-top: 20px; display: flex; gap: 20px; }
-            .summary-card { flex: 1; border: 1px solid #ddd; padding: 12px; border-radius: 4px; text-align: center; }
-            .summary-label { font-size: 11px; color: #666; font-weight: bold; }
-            .summary-value { font-size: 16px; font-weight: bold; margin-top: 5px; }
-            .summary-card.total { background-color: #0066cc; color: white; }
-            .summary-card.total .summary-label { color: rgba(255,255,255,0.8); }
-            .summary-card.discount .summary-value { color: #d32f2f; }
-          </style>
-        </head>
-        <body>
-          <h1>${escapeHtml(t("reports.title"))}</h1>
-          <p>Generated on: ${format(new Date(), 'PPP')}</p>
-          <p>${escapeHtml(t("reports.filterClient"))}: ${escapeHtml(clientName)}</p>
-          <p>${escapeHtml(t("reports.filterProject"))}: ${escapeHtml(projectName)}</p>
-          
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Project</th>
-                <th style="text-align: right;">Base</th>
-                <th style="text-align: right;">Disc.</th>
-                <th style="text-align: right;">Final</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${tableRows}
-              <tr style="background-color: #f0f0f0; font-weight: bold;">
-                <td colspan="3" style="text-align: right; padding: 10px;">TOTALS</td>
-                <td style="padding: 10px; text-align: right;">${formatMoney(subtotal)}</td>
-                <td style="padding: 10px; text-align: right;">-${formatMoney(totalDiscounts)}</td>
-                <td style="padding: 10px; text-align: right;">${formatMoney(total)}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="summary">
-            <div class="summary-card">
-              <div class="summary-label">Subtotal (Before Discounts)</div>
-              <div class="summary-value">${formatMoney(subtotal)}</div>
-            </div>
-            <div class="summary-card discount">
-              <div class="summary-label">Total Discounts Applied</div>
-              <div class="summary-value">-${formatMoney(totalDiscounts)}</div>
-            </div>
-            <div class="summary-card total">
-              <div class="summary-label">Final Total</div>
-              <div class="summary-value">${formatMoney(total)}</div>
-            </div>
-          </div>
-        </body>
-        </html>
-      `;
-
-      const element = document.createElement('div');
-      element.innerHTML = htmlContent;
-      
-      const opt = {
-        margin: 10,
-        filename: `report-${format(new Date(), 'yyyy-MM-dd')}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { orientation: 'landscape', unit: 'mm', format: 'a4' }
-      };
-
-      const doc = new jsPDF(opt.jsPDF);
-      doc.html(element, {
-        callback: function(pdf) {
-          pdf.save(opt.filename);
-          setIsExporting(null);
-        },
-        margin: opt.margin,
-        width: 280,
-        windowHeight: 1000
+        return [
+          charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : 'N/A',
+          description,
+          project?.name || 'Unknown',
+          formatMoney(charge.amount),
+          charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-',
+          formatMoney(finalAmount)
+        ];
       });
+
+      // Use autoTable to create the table
+      (doc as any).autoTable({
+        startY: 42,
+        head: [['Date', 'Description', 'Project', 'Base', 'Disc.', 'Final']],
+        body: tableData,
+        foot: [[
+          '', '', 'TOTALS', 
+          formatMoney(subtotal), 
+          `-${formatMoney(totalDiscounts)}`, 
+          formatMoney(total)
+        ]],
+        headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0], fontStyle: 'bold' },
+        footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+        columnStyles: {
+          3: { halign: 'right' },
+          4: { halign: 'right' },
+          5: { halign: 'right' }
+        },
+        margin: { left: 14, right: 14 },
+        didDrawPage: (data: any) => {
+          // Footer
+          const pageSize = doc.internal.pageSize;
+          const pageHeight = pageSize.getHeight();
+          const pageWidth = pageSize.getWidth();
+          doc.setFontSize(8);
+          doc.setTextColor(150);
+          doc.text(
+            `Page ${data.pageNumber}`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: 'center' }
+          );
+        }
+      });
+
+      doc.save(`report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     } catch (error) {
       console.error('PDF export error:', error);
+    } finally {
       setIsExporting(null);
     }
-  };
-
-  const escapeHtml = (text: string) => {
-    const map: { [key: string]: string } = {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, (m) => map[m]);
   };
 
   const exportWord = async () => {
