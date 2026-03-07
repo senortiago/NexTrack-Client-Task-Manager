@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { FileText, FileDown, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Document, Packer, Paragraph, TextRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, AlignmentType, BorderStyle, HeadingLevel, WidthType } from "docx";
 import { saveAs } from "file-saver";
 
@@ -54,43 +55,20 @@ export default function ReportsPage() {
   const exportPDF = () => {
     setIsExporting("pdf");
     try {
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const doc = new jsPDF();
       const clientName = selectedClientId === "all" ? t("common.all") : clients?.find(c => c.id.toString() === selectedClientId)?.name || "";
       const projectName = selectedProjectId === "all" ? t("common.all") : allProjects?.find(p => p.id.toString() === selectedProjectId)?.name || "";
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const pageWidth = doc.internal.pageSize.getWidth();
 
-      // Title and metadata
-      doc.setFontSize(16);
-      doc.text("Financial Report", 14, 15);
+      doc.setFontSize(20);
+      doc.text(t("reports.title"), 14, 22);
       
-      doc.setFontSize(9);
+      doc.setFontSize(10);
       doc.setTextColor(100);
-      doc.text(`Generated: ${format(new Date(), 'PPP')}`, 14, 22);
-      doc.text(`Client: ${clientName}`, 14, 28);
-      doc.text(`Project: ${projectName}`, 14, 34);
-      doc.setTextColor(0);
+      doc.text(`Generated on: ${format(new Date(), 'PPP')}`, 14, 30);
+      doc.text(`${t("reports.filterClient")}: ${clientName}`, 14, 35);
+      doc.text(`${t("reports.filterProject")}: ${projectName}`, 14, 40);
 
-      // Manual table drawing
-      const colWidths = [25, 65, 40, 30, 25, 30];
-      const rowHeight = 6;
-      let startY = 42;
-      
-      // Header
-      doc.setFillColor(200, 200, 200);
-      doc.setFontSize(9);
-      const headers = ['Date', 'Description', 'Project', 'Base', 'Disc.', 'Final'];
-      headers.forEach((header, i) => {
-        const x = 14 + colWidths.slice(0, i).reduce((a, b) => a + b, 0);
-        doc.rect(x, startY, colWidths[i], rowHeight, 'F');
-        doc.text(header, x + 2, startY + 4, { maxWidth: colWidths[i] - 4 });
-      });
-      startY += rowHeight;
-
-      // Body rows
-      doc.setFillColor(255, 255, 255);
-      doc.setFontSize(8);
-      activeCharges.forEach((charge) => {
+      const tableData = activeCharges.map(charge => {
         const project = allProjects?.find(p => p.id === charge.projectId);
         const task = allTasks?.find(t => t.id === charge.taskId);
         const finalAmount = calculateChargeFinal(charge.amount, charge.discountPercentage);
@@ -98,48 +76,36 @@ export default function ReportsPage() {
         let description = charge.description;
         if (task) {
           description += ` (Task: ${task.title})`;
+          if (task.parentId) {
+            const parent = allTasks?.find(t => t.id === task.parentId);
+            if (parent) description += ` [Subtask of: ${parent.title}]`;
+          }
         }
 
-        const rowData = [
-          charge.createdAt ? format(new Date(charge.createdAt), 'MMM d') : 'N/A',
-          description.substring(0, 40),
-          (project?.name || 'Unknown').substring(0, 20),
+        return [
+          charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : 'N/A',
+          description,
+          project?.name || 'Unknown',
           formatMoney(charge.amount),
           charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-',
           formatMoney(finalAmount)
         ];
-
-        // Draw row
-        rowData.forEach((cell, i) => {
-          const x = 14 + colWidths.slice(0, i).reduce((a, b) => a + b, 0);
-          doc.rect(x, startY, colWidths[i], rowHeight);
-          const isNumeric = i >= 3;
-          doc.text(cell, x + (isNumeric ? colWidths[i] - 2 : 2), startY + 4, {
-            align: isNumeric ? 'right' : 'left',
-            maxWidth: colWidths[i] - 4
-          });
-        });
-        startY += rowHeight;
       });
 
-      // Footer row
-      doc.setFillColor(240, 240, 240);
-      const footerData = ['', '', 'TOTALS', formatMoney(subtotal), `-${formatMoney(totalDiscounts)}`, formatMoney(total)];
-      footerData.forEach((cell, i) => {
-        const x = 14 + colWidths.slice(0, i).reduce((a, b) => a + b, 0);
-        doc.rect(x, startY, colWidths[i], rowHeight, 'F');
-        const isNumeric = i >= 3;
-        doc.setFont(undefined, 'bold');
-        doc.text(cell, x + (isNumeric ? colWidths[i] - 2 : 2), startY + 4, {
-          align: isNumeric ? 'right' : 'left',
-          maxWidth: colWidths[i] - 4
-        });
-        doc.setFont(undefined, 'normal');
+      autoTable(doc, {
+        startY: 50,
+        head: [['Date', 'Description', 'Project', 'Base', 'Disc.', 'Final']],
+        body: tableData,
+        foot: [[
+          '', '', 'TOTALS', 
+          formatMoney(subtotal), 
+          `-${formatMoney(totalDiscounts)}`, 
+          formatMoney(total)
+        ]],
+        footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
       });
 
       doc.save(`report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
-    } catch (error) {
-      console.error('PDF export error:', error);
     } finally {
       setIsExporting(null);
     }
