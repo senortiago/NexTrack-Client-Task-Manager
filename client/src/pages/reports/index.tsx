@@ -59,6 +59,7 @@ export default function ReportsPage() {
       const clientName = selectedClientId === "all" ? t("common.all") : clients?.find(c => c.id.toString() === selectedClientId)?.name || "";
       const projectName = selectedProjectId === "all" ? t("common.all") : allProjects?.find(p => p.id.toString() === selectedProjectId)?.name || "";
 
+      doc.setFont('courier');
       doc.setFontSize(20);
       doc.text(t("reports.title"), 14, 22);
       
@@ -102,7 +103,12 @@ export default function ReportsPage() {
           `-${formatMoney(totalDiscounts)}`, 
           formatMoney(total)
         ]],
-        footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
+        headStyles: { fontName: 'courier', textColor: [0, 0, 0] },
+        bodyStyles: { fontName: 'courier', textColor: [0, 0, 0] },
+        footStyles: { fontName: 'courier', fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+        didDrawPage: function(data: any) {
+          doc.setFont('courier');
+        }
       });
 
       doc.save(`report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
