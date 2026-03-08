@@ -124,7 +124,7 @@ export default function ReportsPage() {
       
       doc.setFontSize(10);
       doc.setTextColor(100);
-      doc.text(`Generated on: ${format(new Date(), 'PPP')}`, 14, 30);
+      doc.text(`${t("reports.generatedOn")}: ${format(new Date(), 'PPP')}`, 14, 30);
       doc.text(`${t("reports.filterClient")}: ${clientName}`, 14, 35);
       doc.text(`${t("reports.filterProject")}: ${projectName}`, 14, 40);
 
@@ -135,17 +135,17 @@ export default function ReportsPage() {
         
         let description = charge.description;
         if (task) {
-          description += ` (Task: ${task.title})`;
+          description += ` (${t("reports.task")}: ${task.title})`;
           if (task.parentId) {
             const parent = allTasks?.find(t => t.id === task.parentId);
-            if (parent) description += ` [Subtask of: ${parent.title}]`;
+            if (parent) description += ` [${t("reports.subtaskOf")}: ${parent.title}]`;
           }
         }
 
         return [
-          charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : 'N/A',
+          charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : t("common.noData"),
           description,
-          project?.name || 'Unknown',
+          project?.name || t("common.unknown"),
           formatMoney(charge.amount),
           charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-',
           formatMoney(finalAmount)
@@ -154,10 +154,10 @@ export default function ReportsPage() {
 
       autoTable(doc, {
         startY: 50,
-        head: [['Date', 'Description', 'Project', 'Base', 'Disc.', 'Final']],
+        head: [[t("reports.colDate"), t("reports.colDescription"), t("reports.colProject"), t("reports.colBase"), t("reports.colDiscountShort"), t("reports.colFinal")]],
         body: tableData,
         foot: [[
-          '', '', 'TOTALS', 
+          '', '', t("reports.totals"), 
           formatMoney(subtotal), 
           `-${formatMoney(totalDiscounts)}`, 
           formatMoney(total)
@@ -183,12 +183,12 @@ export default function ReportsPage() {
       const tableRows = [
         new DocxTableRow({
           children: [
-            new DocxTableCell({ children: [new Paragraph({ text: "Date", style: "bold" })] }),
-            new DocxTableCell({ children: [new Paragraph({ text: "Description", style: "bold" })] }),
-            new DocxTableCell({ children: [new Paragraph({ text: "Project", style: "bold" })] }),
-            new DocxTableCell({ children: [new Paragraph({ text: "Base", style: "bold" })] }),
-            new DocxTableCell({ children: [new Paragraph({ text: "Disc.", style: "bold" })] }),
-            new DocxTableCell({ children: [new Paragraph({ text: "Final", style: "bold" })] }),
+            new DocxTableCell({ children: [new Paragraph({ text: t("reports.colDate"), style: "bold" })] }),
+            new DocxTableCell({ children: [new Paragraph({ text: t("reports.colDescription"), style: "bold" })] }),
+            new DocxTableCell({ children: [new Paragraph({ text: t("reports.colProject"), style: "bold" })] }),
+            new DocxTableCell({ children: [new Paragraph({ text: t("reports.colBase"), style: "bold" })] }),
+            new DocxTableCell({ children: [new Paragraph({ text: t("reports.colDiscountShort"), style: "bold" })] }),
+            new DocxTableCell({ children: [new Paragraph({ text: t("reports.colFinal"), style: "bold" })] }),
           ],
         }),
         ...activeCharges.map(charge => {
@@ -197,18 +197,18 @@ export default function ReportsPage() {
           
           let description = charge.description;
           if (task) {
-            description += ` (Task: ${task.title})`;
+            description += ` (${t("reports.task")}: ${task.title})`;
             if (task.parentId) {
               const parent = allTasks?.find(t => t.id === task.parentId);
-              if (parent) description += ` [Subtask of: ${parent.title}]`;
+              if (parent) description += ` [${t("reports.subtaskOf")}: ${parent.title}]`;
             }
           }
 
           return new DocxTableRow({
             children: [
-              new DocxTableCell({ children: [new Paragraph(charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : 'N/A')] }),
+              new DocxTableCell({ children: [new Paragraph(charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : t("common.noData"))] }),
               new DocxTableCell({ children: [new Paragraph(description)] }),
-              new DocxTableCell({ children: [new Paragraph(project?.name || 'Unknown')] }),
+              new DocxTableCell({ children: [new Paragraph(project?.name || t("common.unknown"))] }),
               new DocxTableCell({ children: [new Paragraph(formatMoney(charge.amount))] }),
               new DocxTableCell({ children: [new Paragraph(charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-')] }),
               new DocxTableCell({ children: [new Paragraph(formatMoney(calculateChargeFinal(charge.amount, charge.discountPercentage)))] }),
@@ -219,7 +219,7 @@ export default function ReportsPage() {
           children: [
             new DocxTableCell({ children: [new Paragraph("")] }),
             new DocxTableCell({ children: [new Paragraph("")] }),
-            new DocxTableCell({ children: [new Paragraph({ text: "TOTALS", style: "bold" })] }),
+            new DocxTableCell({ children: [new Paragraph({ text: t("reports.totals"), style: "bold" })] }),
             new DocxTableCell({ children: [new Paragraph({ text: formatMoney(subtotal), style: "bold" })] }),
             new DocxTableCell({ children: [new Paragraph({ text: `-${formatMoney(totalDiscounts)}`, style: "bold" })] }),
             new DocxTableCell({ children: [new Paragraph({ text: formatMoney(total), style: "bold" })] }),
@@ -232,7 +232,7 @@ export default function ReportsPage() {
           properties: {},
           children: [
             new Paragraph({ text: t("reports.title"), heading: HeadingLevel.HEADING_1 }),
-            new Paragraph({ text: `Generated on: ${format(new Date(), 'PPP')}` }),
+            new Paragraph({ text: `${t("reports.generatedOn")}: ${format(new Date(), 'PPP')}` }),
             new Paragraph({ text: `${t("reports.filterClient")}: ${clientName}` }),
             new Paragraph({ text: `${t("reports.filterProject")}: ${projectName}` }),
             new Paragraph({ text: "" }),
@@ -340,19 +340,19 @@ export default function ReportsPage() {
             <div className="py-8 text-center text-muted-foreground">{t("common.loading")}</div>
           ) : activeCharges.length === 0 ? (
             <div className="py-12 text-center border-t border-border/50 text-muted-foreground">
-              No charges found for the selected criteria.
+              {t("reports.noCharges")}
             </div>
           ) : (
             <div className="rounded-md border border-border/50 overflow-hidden">
               <Table>
                 <TableHeader className="bg-muted/50">
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Project</TableHead>
-                    <TableHead className="text-right">Base Amount</TableHead>
-                    <TableHead className="text-right">Discount</TableHead>
-                    <TableHead className="text-right font-bold">Final Amount</TableHead>
+                    <TableHead>{t("reports.colDate")}</TableHead>
+                    <TableHead>{t("reports.colDescription")}</TableHead>
+                    <TableHead>{t("reports.colProject")}</TableHead>
+                    <TableHead className="text-right">{t("reports.colBaseAmount")}</TableHead>
+                    <TableHead className="text-right">{t("reports.colDiscount")}</TableHead>
+                    <TableHead className="text-right font-bold">{t("reports.colFinalAmount")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -368,9 +368,9 @@ export default function ReportsPage() {
                         <div className="flex flex-col">
                           <span>{charge.description}</span>
                           <span className="text-xs text-muted-foreground">
-                            Task: {task.title}
+                            {t("reports.task")}: {task.title}
                             {task.parentId && (
-                              <> (Subtask of: {allTasks?.find(t => t.id === task.parentId)?.title})</>
+                              <> ({t("reports.subtaskOf")}: {allTasks?.find(t => t.id === task.parentId)?.title})</>
                             )}
                           </span>
                         </div>
@@ -380,10 +380,10 @@ export default function ReportsPage() {
                     return (
                       <TableRow key={charge.id} className={isFullyDiscounted ? 'opacity-60 bg-muted/20' : ''}>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : 'N/A'}
+                          {charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : t("common.noData")}
                         </TableCell>
                         <TableCell className="font-medium">{displayDescription}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">{project?.name || 'Unknown'}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{project?.name || t("common.unknown")}</TableCell>
                         <TableCell className="text-right">{formatMoney(charge.amount)}</TableCell>
                         <TableCell className="text-right text-destructive text-sm">
                           {charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-'}
