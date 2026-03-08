@@ -1,236 +1,257 @@
 # NexTrack
 
-A full-stack task and project tracking application with client service management, billing, and comprehensive reporting features.
+A fullstack task and project tracking application for client service management, built with React, Express, and PostgreSQL.
 
 ## Features
 
-- **Client Management**: Track and organize all your clients with contact information and company details
+- **Client Management**: Track and organize clients with contact information and company details
 - **Project Tracking**: Create and manage projects with active/completed status tracking
-- **Task Management**: Organize work into tasks with subtask support (hierarchical task structure)
-- **Charge Tracking**: Assign service charges to tasks and projects with flexible discounting
-- **Discount Management**: Apply discounts (0-100%) to charges, including full discounts for promotional items
-- **Financial Reporting**: Generate detailed financial reports filtered by client or project
-  - PDF export with tables and summaries
-  - Word document export for easy sharing
-  - Real-time discount and revenue calculations
-- **Internationalization**: Full support for English and Greek interfaces
-- **Dark Mode**: Automatic light/dark/system theme support for enhanced usability
-- **Professional Dashboard**: Overview of key metrics including revenue, active projects, and recent clients
+- **Task Management**: Organize work into tasks with subtask support (hierarchical structure)
+- **Charge Tracking**: Assign service charges to tasks and projects with flexible discounting (0–100%)
+- **Financial Reporting**: Generate detailed PDF and Word reports filtered by client or project
+- **Internationalization**: 6 languages — German, Greek, English, Spanish, French, Italian
+- **Currency Support**: 13 currencies with locale-aware formatting
+- **Theming**: Light, dark, and system theme modes
+- **Branding**: Customizable app name and logo
 
 ## Tech Stack
 
-### Frontend
-- **React 18** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool and development server
-- **Tailwind CSS** - Styling
-- **Shadcn/UI** - Component library
-- **React Query (TanStack)** - Server state management
-- **Wouter** - Lightweight routing
-- **React Hook Form** - Form management with Zod validation
-- **Next-themes** - Theme management
-- **jsPDF + jsPDF-AutoTable** - PDF generation
-- **Docx + FileSaver** - Word document generation
-- **Lucide React** - Icon library
-- **Date-fns** - Date formatting
+| Layer      | Technologies                                                         |
+|------------|----------------------------------------------------------------------|
+| Frontend   | React 18, Vite, TypeScript, Tailwind CSS, Shadcn/UI, TanStack Query |
+| Backend    | Express.js, Drizzle ORM, PostgreSQL                                  |
+| Reports    | jsPDF + jsPDF-AutoTable (PDF), docx + FileSaver (Word)               |
 
-### Backend
-- **Express.js** - Web framework
-- **PostgreSQL** - Database
-- **Drizzle ORM** - Type-safe database access
-- **Drizzle-Zod** - Schema validation
-- **Express-Session** - Session management
-- **Passport.js** - Authentication framework
+---
 
-### Development
-- **TypeScript** - Type checking
-- **Drizzle Kit** - Database schema management
+## Quick Start with Docker
 
-## Prerequisites
+### Prerequisites
 
-- Node.js 18 or higher
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) installed on your machine.
+
+### Step 1 — Clone the repository
+
+```bash
+git clone <your-repo-url> nextrack
+cd nextrack
+```
+
+### Step 2 — Start the database
+
+```bash
+docker compose up db -d
+```
+
+This starts a PostgreSQL 16 container with a persistent volume (`pgdata`). Your data is preserved across container restarts.
+
+Wait a few seconds for the database to become healthy before proceeding.
+
+### Step 3 — Run the database migration
+
+```bash
+docker compose --profile setup run --rm migrate
+```
+
+This pushes the Drizzle schema to PostgreSQL, creating all required tables (clients, projects, tasks, charges). You only need to run this once on first setup, or again after schema changes.
+
+### Step 4 — Build and start the application
+
+```bash
+docker compose up app --build -d
+```
+
+### Step 5 — Open the application
+
+Visit [http://localhost:5000](http://localhost:5000) in your browser. The app is ready to use.
+
+### All-in-one command
+
+To start everything in a single command (useful for first-time setup or after schema changes):
+
+```bash
+docker compose --profile setup run --rm migrate && docker compose up app --build -d
+```
+
+### Stopping the application
+
+```bash
+docker compose down
+```
+
+To also delete the database volume and all stored data:
+
+```bash
+docker compose down -v
+```
+
+---
+
+## Docker Compose Services
+
+| Service   | Description                          | Port |
+|-----------|--------------------------------------|------|
+| `db`      | PostgreSQL 16 with persistent volume | 5432 |
+| `app`     | NexTrack production server           | 5000 |
+| `migrate` | One-shot schema migration (on-demand)| —    |
+
+## Environment Variables
+
+| Variable       | Default                                          | Description               |
+|----------------|--------------------------------------------------|---------------------------|
+| `DATABASE_URL` | `postgresql://nextrack:nextrack@db:5432/nextrack` | PostgreSQL connection URL |
+| `PORT`         | `5000`                                           | Application server port   |
+
+### Customizing database credentials
+
+Edit the `environment` section in `docker-compose.yml` for both the `db` and `app` services. Make sure the `DATABASE_URL` in the `app` and `migrate` services matches the credentials set in the `db` service.
+
+---
+
+## Development (without Docker)
+
+### Prerequisites
+
+- Node.js 20+
 - PostgreSQL database
-- npm or yarn package manager
 
-## Getting Started
-
-### Installation
+### Setup
 
 1. Clone the repository:
+
 ```bash
-git clone <repository-url>
+git clone <your-repo-url> nextrack
 cd nextrack
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
-3. Set up environment variables:
-Create a `.env.local` file in the root directory with:
-```
-DATABASE_URL=postgresql://user:password@localhost:5432/nextrack
-SESSION_SECRET=your-secret-key-here
+3. Set the database connection string:
+
+```bash
+export DATABASE_URL="postgresql://user:password@localhost:5432/nextrack"
 ```
 
-4. Push database schema:
+4. Push the database schema:
+
 ```bash
 npm run db:push
 ```
 
 5. Start the development server:
+
 ```bash
 npm run dev
 ```
 
-The application will be available at `http://localhost:5000`
+The application will be available at [http://localhost:5000](http://localhost:5000) with hot reload enabled.
 
-## Available Scripts
+### Available scripts
 
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build for production
-- `npm start` - Run production build
-- `npm run check` - Run TypeScript type checking
-- `npm run db:push` - Push database schema changes
+| Script           | Description                                |
+|------------------|--------------------------------------------|
+| `npm run dev`    | Start development server with hot reload   |
+| `npm run build`  | Build frontend and backend for production  |
+| `npm start`      | Run the production build                   |
+| `npm run check`  | Run TypeScript type checking               |
+| `npm run db:push`| Push database schema changes to PostgreSQL |
+
+### Building for production (manual)
+
+```bash
+npm run build
+export DATABASE_URL="postgresql://user:password@localhost:5432/nextrack"
+NODE_ENV=production node dist/index.cjs
+```
+
+---
 
 ## Project Structure
 
 ```
-.
-├── client/                 # Frontend React application
-│   ├── src/
-│   │   ├── pages/         # Page components
-│   │   ├── components/    # Reusable UI components
-│   │   ├── hooks/         # Custom React hooks
-│   │   ├── lib/           # Utility functions
-│   │   └── App.tsx        # Main app component
-│   └── index.html
-├── server/                # Backend Express application
-│   ├── index.ts          # Server entry point
-│   ├── routes.ts         # API route handlers
-│   ├── storage.ts        # Database access layer
-│   └── vite.ts           # Vite middleware setup
-├── shared/               # Shared code between client and server
-│   ├── schema.ts         # Database schema and types
-│   └── routes.ts         # API route definitions
-└── package.json
+├── client/src/              # React frontend
+│   ├── components/          # UI components (Shadcn + custom)
+│   ├── hooks/               # Custom hooks (i18n, currency, branding, theme)
+│   ├── pages/               # Page components
+│   └── lib/                 # Utilities (query client, formatting)
+├── server/                  # Express backend
+│   ├── index.ts             # Server entry point
+│   ├── routes.ts            # API route handlers
+│   ├── storage.ts           # Database access layer
+│   └── db.ts                # Database connection
+├── shared/                  # Shared between frontend and backend
+│   └── schema.ts            # Drizzle schema + Zod validation
+├── Dockerfile               # Multi-stage Docker build
+├── docker-compose.yml       # Docker Compose configuration
+└── drizzle.config.ts        # Drizzle Kit configuration
 ```
 
 ## Database Schema
 
 ### Clients
-- `id` - Primary key
-- `name` - Client name (required)
-- `email` - Contact email
-- `company` - Company name
-- `createdAt` - Creation timestamp
+- `id` — Primary key
+- `name` — Client name (required)
+- `email` — Contact email
+- `company` — Company name
+- `createdAt` — Creation timestamp
 
 ### Projects
-- `id` - Primary key
-- `clientId` - Reference to client
-- `name` - Project name (required)
-- `description` - Project description
-- `status` - "active" or "completed"
-- `createdAt` - Creation timestamp
+- `id` — Primary key
+- `clientId` — Reference to client
+- `name` — Project name (required)
+- `description` — Project description
+- `status` — "active" or "completed"
+- `createdAt` — Creation timestamp
 
 ### Tasks
-- `id` - Primary key
-- `projectId` - Reference to project
-- `parentId` - Reference to parent task (for subtasks)
-- `title` - Task title (required)
-- `description` - Task description
-- `status` - "todo", "in_progress", or "done"
-- `createdAt` - Creation timestamp
+- `id` — Primary key
+- `projectId` — Reference to project
+- `parentId` — Reference to parent task (for subtasks)
+- `title` — Task title (required)
+- `description` — Task description
+- `status` — "todo", "in_progress", or "done"
+- `createdAt` — Creation timestamp
 
 ### Charges
-- `id` - Primary key
-- `projectId` - Reference to project
-- `taskId` - Reference to task (optional)
-- `description` - Charge description (required)
-- `amount` - Amount in cents (required)
-- `discountPercentage` - Discount from 0-100% (default: 0)
-- `createdAt` - Creation timestamp
+- `id` — Primary key
+- `projectId` — Reference to project
+- `taskId` — Reference to task (optional)
+- `description` — Charge description (required)
+- `amount` — Amount in cents (required)
+- `discountPercentage` — Discount from 0–100% (default: 0)
+- `createdAt` — Creation timestamp
 
 ## API Routes
 
-All routes are prefixed with `/api`
+All routes are prefixed with `/api`.
 
-### Clients
-- `GET /api/clients` - List all clients
-- `POST /api/clients` - Create a new client
-- `GET /api/clients/:id` - Get client details
-- `PATCH /api/clients/:id` - Update client
-- `DELETE /api/clients/:id` - Delete client
-
-### Projects
-- `GET /api/projects` - List all projects
-- `POST /api/projects` - Create a new project
-- `GET /api/projects/:id` - Get project details
-- `PATCH /api/projects/:id` - Update project
-- `DELETE /api/projects/:id` - Delete project
-
-### Tasks
-- `GET /api/tasks` - List all tasks
-- `POST /api/tasks` - Create a new task
-- `GET /api/tasks/:id` - Get task details
-- `PATCH /api/tasks/:id` - Update task
-- `DELETE /api/tasks/:id` - Delete task
-
-### Charges
-- `GET /api/charges` - List all charges
-- `POST /api/charges` - Create a new charge
-- `GET /api/charges/:id` - Get charge details
-- `PATCH /api/charges/:id` - Update charge
-- `DELETE /api/charges/:id` - Delete charge
-
-## Key Features Explained
-
-### Charge Management
-Charges are stored in cents and can be associated with either a project or a specific task within a project. This allows for flexible billing at both project and task levels. The `discountPercentage` field supports values from 0 to 100%, where 100% represents a completely free/promotional charge.
-
-### Subtasks
-Tasks support a hierarchical structure through the `parentId` field, allowing you to organize complex projects into parent tasks and subtasks. This is useful for breaking down large pieces of work.
-
-### Financial Reports
-The reports page provides a comprehensive view of charges with the ability to:
-- Filter by client
-- Filter by project (filtered based on selected client)
-- View real-time calculations of subtotal, discounts, and final total
-- Export to PDF or Word format for sharing with stakeholders
-
-### Internationalization
-The application includes built-in support for multiple languages. Add new language translations in `client/src/hooks/use-language.tsx` by extending the `translations` object.
-
-### Theme Support
-Uses `next-themes` for seamless theme switching. The app respects user system preferences by default but allows manual override.
-
-## Development Notes
-
-### Currency Handling
-All monetary amounts are stored as integers representing cents (e.g., $10.50 = 1050). The frontend automatically converts to dollars for display and multiplies by 100 on input.
-
-### Form Validation
-Forms use React Hook Form with Zod schemas for validation. All input schemas are defined in `shared/schema.ts` using `createInsertSchema` from `drizzle-zod`.
-
-### State Management
-- Server state: React Query (TanStack Query)
-- UI state: React hooks (useState)
-- Theme state: next-themes
-- Language state: Custom context provider
-
-## Contributing
-
-Contributions are welcome! Please ensure:
-1. Code follows the existing structure and conventions
-2. All new features include appropriate translations in the language hook
-3. Database schema changes use `npm run db:push`
-4. TypeScript types are properly defined
+| Method   | Endpoint              | Description         |
+|----------|-----------------------|---------------------|
+| `GET`    | `/api/clients`        | List all clients    |
+| `POST`   | `/api/clients`        | Create a client     |
+| `GET`    | `/api/clients/:id`    | Get client details  |
+| `PATCH`  | `/api/clients/:id`    | Update a client     |
+| `DELETE` | `/api/clients/:id`    | Delete a client     |
+| `GET`    | `/api/projects`       | List all projects   |
+| `POST`   | `/api/projects`       | Create a project    |
+| `GET`    | `/api/projects/:id`   | Get project details |
+| `PATCH`  | `/api/projects/:id`   | Update a project    |
+| `DELETE` | `/api/projects/:id`   | Delete a project    |
+| `GET`    | `/api/tasks`          | List all tasks      |
+| `POST`   | `/api/tasks`          | Create a task       |
+| `GET`    | `/api/tasks/:id`      | Get task details    |
+| `PATCH`  | `/api/tasks/:id`      | Update a task       |
+| `DELETE` | `/api/tasks/:id`      | Delete a task       |
+| `GET`    | `/api/charges`        | List all charges    |
+| `POST`   | `/api/charges`        | Create a charge     |
+| `GET`    | `/api/charges/:id`    | Get charge details  |
+| `PATCH`  | `/api/charges/:id`    | Update a charge     |
+| `DELETE` | `/api/charges/:id`    | Delete a charge     |
 
 ## License
 
 MIT
-
----
-
-**NexTrack** - Making project management and client billing simple and efficient.

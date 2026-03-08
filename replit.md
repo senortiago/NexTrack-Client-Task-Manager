@@ -57,6 +57,16 @@ Full-stack task/project tracking app for client service management built with Re
 - Registered via jsPDF `addFileToVFS`/`addFont` API
 - Falls back to Helvetica with user toast notification if font fetch fails
 
+## Docker Deployment
+- `Dockerfile` — Multi-stage build (deps → build → production, plus migrate stage)
+- `docker-compose.yml` — PostgreSQL 16 + app + one-shot migrate service
+- `.dockerignore` — Excludes node_modules, dist, .git, .local, attached_assets
+- Persistent volume `pgdata` for database data
+- Production image uses `npm ci --omit=dev` for minimal size
+- Migrate service uses `--profile setup` and runs `drizzle-kit push`
+
 ## Running
 - `npm run dev` starts Express backend + Vite frontend on port 5000
+- `npm run build` builds frontend (Vite) + backend (esbuild) into `dist/`
+- `npm start` runs production build (`node dist/index.cjs`)
 - `npm run db:push` pushes schema changes to PostgreSQL
