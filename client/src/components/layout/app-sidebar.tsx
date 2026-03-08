@@ -19,12 +19,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 export function AppSidebar() {
   const [location] = useLocation();
   const { t } = useLanguage();
   const { appName, logoUrl } = useBranding();
+  const { isMobile, setOpenMobile } = useSidebar();
 
   const navItems = [
     { title: t("nav.dashboard"), url: "/", icon: LayoutDashboard },
@@ -58,7 +60,7 @@ export function AppSidebar() {
               {navItems.map((item) => {
                 const isActive = location === item.url || (item.url !== "/" && location.startsWith(item.url));
                 return (
-                  <SidebarMenuItem key={item.title}>
+                  <SidebarMenuItem key={item.title} onClick={() => { if (isMobile) setOpenMobile(false); }}>
                     <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
                       <Link href={item.url} className="transition-colors">
                         <item.icon className="w-4 h-4" />
