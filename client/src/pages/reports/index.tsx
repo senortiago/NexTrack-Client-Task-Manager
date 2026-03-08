@@ -4,6 +4,7 @@ import { useProjects } from "@/hooks/use-projects";
 import { useCharges } from "@/hooks/use-charges";
 import { useTasks } from "@/hooks/use-tasks";
 import { useLanguage } from "@/hooks/use-language";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatMoney, calculateChargeFinal, calculateChargeDiscount } from "@/lib/format";
@@ -16,12 +17,60 @@ import autoTable from "jspdf-autotable";
 import { Document, Packer, Paragraph, TextRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, AlignmentType, BorderStyle, HeadingLevel, WidthType } from "docx";
 import { saveAs } from "file-saver";
 
+const FONT_URL = 'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoSans/hinted/ttf/NotoSans-Regular.ttf';
+const FONT_BOLD_URL = 'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoSans/hinted/ttf/NotoSans-Bold.ttf';
+
+let cachedFonts: { regular: string; bold: string } | null = null;
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    binary += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  return btoa(binary);
+}
+
+async function fetchAndCacheFonts(): Promise<{ regular: string; bold: string }> {
+  if (cachedFonts) return cachedFonts;
+
+  const [regularRes, boldRes] = await Promise.all([
+    fetch(FONT_URL),
+    fetch(FONT_BOLD_URL),
+  ]);
+
+  if (!regularRes.ok || !boldRes.ok) {
+    throw new Error(`Font download failed: regular=${regularRes.status}, bold=${boldRes.status}`);
+  }
+
+  const [regularBuf, boldBuf] = await Promise.all([
+    regularRes.arrayBuffer(),
+    boldRes.arrayBuffer(),
+  ]);
+
+  cachedFonts = {
+    regular: arrayBufferToBase64(regularBuf),
+    bold: arrayBufferToBase64(boldBuf),
+  };
+  return cachedFonts;
+}
+
+function registerFonts(doc: jsPDF, fonts: { regular: string; bold: string }) {
+  doc.addFileToVFS('NotoSans-Regular.ttf', fonts.regular);
+  doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+  doc.addFileToVFS('NotoSans-Bold.ttf', fonts.bold);
+  doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold');
+}
+
 export default function ReportsPage() {
   const { data: clients } = useClients();
   const { data: allProjects } = useProjects();
   const { data: allCharges, isLoading: loadingCharges } = useCharges();
   const { data: allTasks } = useTasks();
   const { t } = useLanguage();
+  const { toast } = useToast();
 
   const [selectedClientId, setSelectedClientId] = useState<string>("all");
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
@@ -52,113 +101,74 @@ export default function ReportsPage() {
   const totalDiscounts = activeCharges.reduce((acc, c) => acc + calculateChargeDiscount(c.amount, c.discountPercentage), 0);
   const total = subtotal - totalDiscounts;
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
     setIsExporting("pdf");
     try {
-      const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+      const doc = new jsPDF();
       const clientName = selectedClientId === "all" ? t("common.all") : clients?.find(c => c.id.toString() === selectedClientId)?.name || "";
       const projectName = selectedProjectId === "all" ? t("common.all") : allProjects?.find(p => p.id.toString() === selectedProjectId)?.name || "";
 
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="UTF-8">
-          <style>
-            * { margin: 0; padding: 0; }
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { font-size: 20px; margin-bottom: 10px; }
-            .info { font-size: 10px; color: #666; margin-bottom: 5px; }
-            .spacer { height: 10px; }
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              font-size: 10px;
-              margin-top: 10px;
-            }
-            th, td { 
-              border: 1px solid #999; 
-              padding: 5px; 
-              text-align: left;
-            }
-            th { 
-              background-color: #f0f0f0; 
-              font-weight: bold;
-            }
-            .numeric { text-align: right; }
-            tfoot tr { background-color: #f0f0f0; font-weight: bold; }
-            tfoot td.numeric { text-align: right; }
-          </style>
-        </head>
-        <body>
-          <h1>${t("reports.title")}</h1>
-          <div class="info">Generated on: ${format(new Date(), 'PPP')}</div>
-          <div class="info">${t("reports.filterClient")}: ${clientName}</div>
-          <div class="info">${t("reports.filterProject")}: ${projectName}</div>
-          <div class="spacer"></div>
-          
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Project</th>
-                <th class="numeric">Base</th>
-                <th class="numeric">Disc.</th>
-                <th class="numeric">Final</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${activeCharges.map(charge => {
-                const project = allProjects?.find(p => p.id === charge.projectId);
-                const task = allTasks?.find(t => t.id === charge.taskId);
-                const finalAmount = calculateChargeFinal(charge.amount, charge.discountPercentage);
-                
-                let description = charge.description;
-                if (task) {
-                  description += ` (Task: ${task.title})`;
-                  if (task.parentId) {
-                    const parent = allTasks?.find(t => t.id === task.parentId);
-                    if (parent) description += ` [Subtask of: ${parent.title}]`;
-                  }
-                }
-                
-                return `
-                  <tr>
-                    <td>${charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : 'N/A'}</td>
-                    <td>${description}</td>
-                    <td>${project?.name || 'Unknown'}</td>
-                    <td class="numeric">${formatMoney(charge.amount)}</td>
-                    <td class="numeric">${charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-'}</td>
-                    <td class="numeric">${formatMoney(finalAmount)}</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colspan="3">TOTALS</td>
-                <td class="numeric">${formatMoney(subtotal)}</td>
-                <td class="numeric">-${formatMoney(totalDiscounts)}</td>
-                <td class="numeric">${formatMoney(total)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </body>
-        </html>
-      `;
+      let fontName = 'helvetica';
+      try {
+        const fonts = await fetchAndCacheFonts();
+        registerFonts(doc, fonts);
+        fontName = 'NotoSans';
+      } catch (e) {
+        console.warn('Could not load Unicode font, falling back to default:', e);
+        toast({ variant: "destructive", title: "Unicode font could not be loaded. Greek characters may not render correctly." });
+      }
 
-      doc.html(htmlContent, {
-        x: 0,
-        y: 0,
-        width: 210,
-        windowHeight: 297,
-        margin: [10, 10, 10, 10],
-        autoPaging: 'text',
-        callback: (instance) => {
-          instance.save(`report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      doc.setFont(fontName);
+      doc.setFontSize(20);
+      doc.text(t("reports.title"), 14, 22);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${format(new Date(), 'PPP')}`, 14, 30);
+      doc.text(`${t("reports.filterClient")}: ${clientName}`, 14, 35);
+      doc.text(`${t("reports.filterProject")}: ${projectName}`, 14, 40);
+
+      const tableData = activeCharges.map(charge => {
+        const project = allProjects?.find(p => p.id === charge.projectId);
+        const task = allTasks?.find(t => t.id === charge.taskId);
+        const finalAmount = calculateChargeFinal(charge.amount, charge.discountPercentage);
+        
+        let description = charge.description;
+        if (task) {
+          description += ` (Task: ${task.title})`;
+          if (task.parentId) {
+            const parent = allTasks?.find(t => t.id === task.parentId);
+            if (parent) description += ` [Subtask of: ${parent.title}]`;
+          }
         }
+
+        return [
+          charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : 'N/A',
+          description,
+          project?.name || 'Unknown',
+          formatMoney(charge.amount),
+          charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-',
+          formatMoney(finalAmount)
+        ];
       });
+
+      autoTable(doc, {
+        startY: 50,
+        head: [['Date', 'Description', 'Project', 'Base', 'Disc.', 'Final']],
+        body: tableData,
+        foot: [[
+          '', '', 'TOTALS', 
+          formatMoney(subtotal), 
+          `-${formatMoney(totalDiscounts)}`, 
+          formatMoney(total)
+        ]],
+        styles: { font: fontName },
+        headStyles: { font: fontName, fontStyle: 'bold' },
+        bodyStyles: { font: fontName },
+        footStyles: { font: fontName, fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
+      });
+
+      doc.save(`report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     } finally {
       setIsExporting(null);
     }
