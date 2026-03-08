@@ -55,77 +55,106 @@ export default function ReportsPage() {
   const exportPDF = () => {
     setIsExporting("pdf");
     try {
-      const doc = new jsPDF();
+      const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
       const clientName = selectedClientId === "all" ? t("common.all") : clients?.find(c => c.id.toString() === selectedClientId)?.name || "";
       const projectName = selectedProjectId === "all" ? t("common.all") : allProjects?.find(p => p.id.toString() === selectedProjectId)?.name || "";
 
-      // Create HTML content with proper UTF-8 encoding for Greek characters
-      let htmlContent = `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h1 style="font-size: 24px; margin: 0 0 10px 0;">${t("reports.title")}</h1>
-          <p style="font-size: 12px; color: #666; margin: 5px 0;">Generated on: ${format(new Date(), 'PPP')}</p>
-          <p style="font-size: 12px; color: #666; margin: 5px 0;">${t("reports.filterClient")}: ${clientName}</p>
-          <p style="font-size: 12px; color: #666; margin: 5px 0 20px 0;">${t("reports.filterProject")}: ${projectName}</p>
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            * { margin: 0; padding: 0; }
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { font-size: 20px; margin-bottom: 10px; }
+            .info { font-size: 10px; color: #666; margin-bottom: 5px; }
+            .spacer { height: 10px; }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              font-size: 10px;
+              margin-top: 10px;
+            }
+            th, td { 
+              border: 1px solid #999; 
+              padding: 5px; 
+              text-align: left;
+            }
+            th { 
+              background-color: #f0f0f0; 
+              font-weight: bold;
+            }
+            .numeric { text-align: right; }
+            tfoot tr { background-color: #f0f0f0; font-weight: bold; }
+            tfoot td.numeric { text-align: right; }
+          </style>
+        </head>
+        <body>
+          <h1>${t("reports.title")}</h1>
+          <div class="info">Generated on: ${format(new Date(), 'PPP')}</div>
+          <div class="info">${t("reports.filterClient")}: ${clientName}</div>
+          <div class="info">${t("reports.filterProject")}: ${projectName}</div>
+          <div class="spacer"></div>
           
-          <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+          <table>
             <thead>
-              <tr style="background-color: #f0f0f0;">
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Date</th>
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Description</th>
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Project</th>
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Base</th>
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Disc.</th>
-                <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Final</th>
+              <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Project</th>
+                <th class="numeric">Base</th>
+                <th class="numeric">Disc.</th>
+                <th class="numeric">Final</th>
               </tr>
             </thead>
             <tbody>
-      `;
-
-      activeCharges.forEach(charge => {
-        const project = allProjects?.find(p => p.id === charge.projectId);
-        const task = allTasks?.find(t => t.id === charge.taskId);
-        const finalAmount = calculateChargeFinal(charge.amount, charge.discountPercentage);
-        
-        let description = charge.description;
-        if (task) {
-          description += ` (Task: ${task.title})`;
-          if (task.parentId) {
-            const parent = allTasks?.find(t => t.id === task.parentId);
-            if (parent) description += ` [Subtask of: ${parent.title}]`;
-          }
-        }
-
-        htmlContent += `
-          <tr>
-            <td style="border: 1px solid #ddd; padding: 8px;">${charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : 'N/A'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">${description}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">${project?.name || 'Unknown'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatMoney(charge.amount)}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatMoney(finalAmount)}</td>
-          </tr>
-        `;
-      });
-
-      htmlContent += `
+              ${activeCharges.map(charge => {
+                const project = allProjects?.find(p => p.id === charge.projectId);
+                const task = allTasks?.find(t => t.id === charge.taskId);
+                const finalAmount = calculateChargeFinal(charge.amount, charge.discountPercentage);
+                
+                let description = charge.description;
+                if (task) {
+                  description += ` (Task: ${task.title})`;
+                  if (task.parentId) {
+                    const parent = allTasks?.find(t => t.id === task.parentId);
+                    if (parent) description += ` [Subtask of: ${parent.title}]`;
+                  }
+                }
+                
+                return `
+                  <tr>
+                    <td>${charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : 'N/A'}</td>
+                    <td>${description}</td>
+                    <td>${project?.name || 'Unknown'}</td>
+                    <td class="numeric">${formatMoney(charge.amount)}</td>
+                    <td class="numeric">${charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-'}</td>
+                    <td class="numeric">${formatMoney(finalAmount)}</td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
             <tfoot>
-              <tr style="background-color: #f0f0f0; font-weight: bold;">
-                <td colspan="3" style="border: 1px solid #ddd; padding: 8px; text-align: right;">TOTALS</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatMoney(subtotal)}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">-${formatMoney(totalDiscounts)}</td>
-                <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatMoney(total)}</td>
+              <tr>
+                <td colspan="3">TOTALS</td>
+                <td class="numeric">${formatMoney(subtotal)}</td>
+                <td class="numeric">-${formatMoney(totalDiscounts)}</td>
+                <td class="numeric">${formatMoney(total)}</td>
               </tr>
             </tfoot>
           </table>
-        </div>
+        </body>
+        </html>
       `;
 
       doc.html(htmlContent, {
-        x: 10,
-        y: 10,
-        width: 190,
-        windowHeight: 800,
+        x: 0,
+        y: 0,
+        width: 210,
+        windowHeight: 297,
+        margin: [10, 10, 10, 10],
+        autoPaging: 'text',
         callback: (instance) => {
           instance.save(`report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
         }
