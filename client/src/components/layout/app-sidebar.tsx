@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useLanguage } from "@/hooks/use-language";
+import { useBranding } from "@/hooks/use-branding";
 import { 
   LayoutDashboard, 
   Users, 
@@ -23,6 +24,7 @@ import {
 export function AppSidebar() {
   const [location] = useLocation();
   const { t } = useLanguage();
+  const { appName, logoUrl } = useBranding();
 
   const navItems = [
     { title: t("nav.dashboard"), url: "/", icon: LayoutDashboard },
@@ -36,10 +38,14 @@ export function AppSidebar() {
     <Sidebar className="border-r border-border/50">
       <SidebarHeader className="p-4 border-b border-border/50">
         <div className="flex items-center gap-2 px-2">
-          <div className="bg-primary text-primary-foreground p-1.5 rounded-lg shadow-sm">
-            <Briefcase className="w-5 h-5" />
-          </div>
-          <span className="font-display font-bold text-lg tracking-tight">NexTrack</span>
+          {logoUrl ? (
+            <img src={logoUrl} alt={appName} className="w-8 h-8 rounded-lg object-contain" data-testid="img-sidebar-logo" />
+          ) : (
+            <div className="bg-primary text-primary-foreground p-1.5 rounded-lg shadow-sm">
+              <Briefcase className="w-5 h-5" />
+            </div>
+          )}
+          <span className="font-display font-bold text-lg tracking-tight" data-testid="text-sidebar-app-name">{appName}</span>
         </div>
       </SidebarHeader>
       <SidebarContent>

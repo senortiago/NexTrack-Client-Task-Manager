@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/hooks/use-language";
 import { CurrencyProvider } from "@/hooks/use-currency";
+import { BrandingProvider } from "@/hooks/use-branding";
 import NotFound from "@/pages/not-found";
 
 // Pages
@@ -45,6 +46,7 @@ function App() {
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <LanguageProvider>
           <CurrencyProvider>
+          <BrandingProvider>
             <TooltipProvider>
             <SidebarProvider style={style}>
               <div className="flex h-screen w-full bg-background overflow-hidden">
@@ -61,6 +63,7 @@ function App() {
             </SidebarProvider>
             <Toaster />
             </TooltipProvider>
+          </BrandingProvider>
           </CurrencyProvider>
         </LanguageProvider>
       </ThemeProvider>

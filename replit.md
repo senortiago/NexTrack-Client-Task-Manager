@@ -10,19 +10,21 @@ Full-stack task/project tracking app for client service management built with Re
 - **Word Export**: docx + file-saver
 - **Theme**: next-themes (light/dark/system)
 - **i18n**: Custom LanguageProvider in `client/src/hooks/use-language.tsx` (6 languages: DE, EL, EN, ES, FR, IT)
-- **Currency**: CurrencyProvider in `client/src/hooks/use-currency.tsx` (13 currencies: ARS, AUD, BRL, CAD, CHF, CLP, COP, EUR, GBP, MXN, NZD, PEN, USD)
+- **Currency**: CurrencyProvider in `client/src/hooks/use-currency.tsx` (13 currencies)
+- **Branding**: BrandingProvider in `client/src/hooks/use-branding.tsx` (customizable app name + logo)
 
 ## Key Files
 - `shared/schema.ts` - Database schema (clients, projects, tasks, charges) and Zod validation
 - `server/routes.ts` - REST API routes for all CRUD operations
 - `server/storage.ts` - Database access layer (IStorage interface)
-- `client/src/App.tsx` - Root component with providers (ThemeProvider, LanguageProvider, CurrencyProvider, QueryClient)
-- `client/src/components/layout/app-sidebar.tsx` - Navigation sidebar with i18n
+- `client/src/App.tsx` - Root component with providers (ThemeProvider, LanguageProvider, CurrencyProvider, BrandingProvider, QueryClient)
+- `client/src/components/layout/app-sidebar.tsx` - Navigation sidebar with branding and i18n
 - `client/src/pages/reports/index.tsx` - Reports page with PDF/Word export
-- `client/src/pages/settings.tsx` - Language, currency, and theme settings
+- `client/src/pages/settings.tsx` - Branding, language, currency, and theme settings
 - `client/src/hooks/use-language.tsx` - i18n system with translations for 6 languages
 - `client/src/hooks/use-currency.tsx` - Currency provider with Intl.NumberFormat formatting
-- `client/src/lib/format.ts` - Discount calculation utilities (formatMoney moved to currency hook)
+- `client/src/hooks/use-branding.tsx` - App name and logo provider (localStorage-based)
+- `client/src/lib/format.ts` - Discount calculation utilities
 
 ## Data Model
 - **Amounts**: Stored in cents (integer); frontend divides by 100 for display
@@ -30,9 +32,16 @@ Full-stack task/project tracking app for client service management built with Re
 - **Subtasks**: Tasks use `parentId` (self-referential) for hierarchy
 - **Charges**: Linked to project (required) and optionally to a task
 
+## Branding
+- `useBranding()` hook provides `appName`, `setAppName`, `logoUrl`, `setLogoUrl`
+- Default app name: "NexTrack"; default logo: Briefcase icon
+- Logo stored as base64 data URL in localStorage (`app-logo`), max 512 KB
+- App name stored in localStorage (`app-name`)
+- Used in sidebar header and customizable via Settings page
+
 ## i18n
 - Languages: German (de), Greek (el), English (en), Spanish (es), French (fr), Italian (it)
-- Translation keys in `use-language.tsx` — ~100+ keys per language
+- Translation keys in `use-language.tsx` — ~185+ keys per language
 - `date-fns` locale imports: `de, el, enUS, es, fr, it` for localized date formatting
 - Language selector in Settings shows native names (e.g. "Deutsch (German)")
 
