@@ -59,17 +59,29 @@ export default function ReportsPage() {
       const clientName = selectedClientId === "all" ? t("common.all") : clients?.find(c => c.id.toString() === selectedClientId)?.name || "";
       const projectName = selectedProjectId === "all" ? t("common.all") : allProjects?.find(p => p.id.toString() === selectedProjectId)?.name || "";
 
-      doc.setFont('courier');
-      doc.setFontSize(20);
-      doc.text(t("reports.title"), 14, 22);
-      
-      doc.setFontSize(10);
-      doc.setTextColor(100);
-      doc.text(`Generated on: ${format(new Date(), 'PPP')}`, 14, 30);
-      doc.text(`${t("reports.filterClient")}: ${clientName}`, 14, 35);
-      doc.text(`${t("reports.filterProject")}: ${projectName}`, 14, 40);
+      // Create HTML content with proper UTF-8 encoding for Greek characters
+      let htmlContent = `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h1 style="font-size: 24px; margin: 0 0 10px 0;">${t("reports.title")}</h1>
+          <p style="font-size: 12px; color: #666; margin: 5px 0;">Generated on: ${format(new Date(), 'PPP')}</p>
+          <p style="font-size: 12px; color: #666; margin: 5px 0;">${t("reports.filterClient")}: ${clientName}</p>
+          <p style="font-size: 12px; color: #666; margin: 5px 0 20px 0;">${t("reports.filterProject")}: ${projectName}</p>
+          
+          <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <thead>
+              <tr style="background-color: #f0f0f0;">
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Date</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Description</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Project</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Base</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Disc.</th>
+                <th style="border: 1px solid #ddd; padding: 8px; text-align: right;">Final</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
 
-      const tableData = activeCharges.map(charge => {
+      activeCharges.forEach(charge => {
         const project = allProjects?.find(p => p.id === charge.projectId);
         const task = allTasks?.find(t => t.id === charge.taskId);
         const finalAmount = calculateChargeFinal(charge.amount, charge.discountPercentage);
@@ -83,35 +95,41 @@ export default function ReportsPage() {
           }
         }
 
-        return [
-          charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : 'N/A',
-          description,
-          project?.name || 'Unknown',
-          formatMoney(charge.amount),
-          charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-',
-          formatMoney(finalAmount)
-        ];
+        htmlContent += `
+          <tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">${charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : 'N/A'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${description}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${project?.name || 'Unknown'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatMoney(charge.amount)}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-'}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatMoney(finalAmount)}</td>
+          </tr>
+        `;
       });
 
-      autoTable(doc, {
-        startY: 50,
-        head: [['Date', 'Description', 'Project', 'Base', 'Disc.', 'Final']],
-        body: tableData,
-        foot: [[
-          '', '', 'TOTALS', 
-          formatMoney(subtotal), 
-          `-${formatMoney(totalDiscounts)}`, 
-          formatMoney(total)
-        ]],
-        headStyles: { fontName: 'courier', textColor: [0, 0, 0] },
-        bodyStyles: { fontName: 'courier', textColor: [0, 0, 0] },
-        footStyles: { fontName: 'courier', fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
-        didDrawPage: function(data: any) {
-          doc.setFont('courier');
+      htmlContent += `
+            </tbody>
+            <tfoot>
+              <tr style="background-color: #f0f0f0; font-weight: bold;">
+                <td colspan="3" style="border: 1px solid #ddd; padding: 8px; text-align: right;">TOTALS</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatMoney(subtotal)}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">-${formatMoney(totalDiscounts)}</td>
+                <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatMoney(total)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      `;
+
+      doc.html(htmlContent, {
+        x: 10,
+        y: 10,
+        width: 190,
+        windowHeight: 800,
+        callback: (instance) => {
+          instance.save(`report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
         }
       });
-
-      doc.save(`report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     } finally {
       setIsExporting(null);
     }
