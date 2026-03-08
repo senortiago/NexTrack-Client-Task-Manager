@@ -31,9 +31,9 @@ export default function ClientsPage() {
   const handleDelete = async (id: number) => {
     try {
       await deleteClient.mutateAsync(id);
-      toast({ title: "Client deleted successfully" });
+      toast({ title: t("clients.deletedSuccess") });
     } catch (error) {
-      toast({ variant: "destructive", title: "Failed to delete client" });
+      toast({ variant: "destructive", title: t("clients.deletedError") });
     }
   };
 
@@ -54,7 +54,7 @@ export default function ClientsPage() {
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Add New Client</DialogTitle>
+              <DialogTitle>{t("clients.addNewClient")}</DialogTitle>
             </DialogHeader>
             <ClientForm onSuccess={() => setIsCreateOpen(false)} />
           </DialogContent>
@@ -100,7 +100,7 @@ export default function ClientsPage() {
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Edit Client</DialogTitle>
+                          <DialogTitle>{t("clients.editClient")}</DialogTitle>
                         </DialogHeader>
                         <ClientForm initialData={client} onSuccess={() => setEditingClient(null)} />
                       </DialogContent>
@@ -114,15 +114,15 @@ export default function ClientsPage() {
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Client</AlertDialogTitle>
+                          <AlertDialogTitle>{t("clients.deleteClient")}</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure? This action cannot be undone. All associated projects and charges may be lost.
+                            {t("clients.deleteConfirm")}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                           <AlertDialogAction onClick={() => handleDelete(client.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Delete
+                            {t("common.delete")}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -133,11 +133,11 @@ export default function ClientsPage() {
                 <div className="space-y-3">
                   <div className="flex items-center text-sm text-muted-foreground">
                     <Building className="w-4 h-4 mr-2 opacity-70" />
-                    {client.company || <span className="italic opacity-50">No company</span>}
+                    {client.company || <span className="italic opacity-50">{t("clients.noCompany")}</span>}
                   </div>
                   <div className="flex items-center text-sm text-muted-foreground">
                     <Mail className="w-4 h-4 mr-2 opacity-70" />
-                    {client.email || <span className="italic opacity-50">No email</span>}
+                    {client.email || <span className="italic opacity-50">{t("clients.noEmail")}</span>}
                   </div>
                 </div>
 

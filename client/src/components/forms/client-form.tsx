@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertClientSchema, type InsertClient, type Client } from "@shared/schema";
 import { useCreateClient, useUpdateClient } from "@/hooks/use-clients";
+import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -21,6 +22,7 @@ interface ClientFormProps {
 
 export function ClientForm({ initialData, onSuccess }: ClientFormProps) {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const createClient = useCreateClient();
   const updateClient = useUpdateClient();
   
@@ -37,16 +39,16 @@ export function ClientForm({ initialData, onSuccess }: ClientFormProps) {
     try {
       if (initialData) {
         await updateClient.mutateAsync({ id: initialData.id, ...data });
-        toast({ title: "Client updated successfully" });
+        toast({ title: t("clients.updatedSuccess") });
       } else {
         await createClient.mutateAsync(data);
-        toast({ title: "Client created successfully" });
+        toast({ title: t("clients.createdSuccess") });
       }
       onSuccess?.();
     } catch (error) {
       toast({ 
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Something went wrong", 
+        title: t("common.error"), 
+        description: error instanceof Error ? error.message : t("common.somethingWentWrong"), 
         variant: "destructive" 
       });
     }
@@ -62,7 +64,7 @@ export function ClientForm({ initialData, onSuccess }: ClientFormProps) {
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Name *</FormLabel>
+              <FormLabel>{t("form.name")} {t("form.required")}</FormLabel>
               <FormControl>
                 <Input placeholder="John Doe" {...field} value={field.value || ''} />
               </FormControl>
@@ -75,7 +77,7 @@ export function ClientForm({ initialData, onSuccess }: ClientFormProps) {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>{t("form.email")}</FormLabel>
               <FormControl>
                 <Input type="email" placeholder="john@example.com" {...field} value={field.value || ''} />
               </FormControl>
@@ -88,7 +90,7 @@ export function ClientForm({ initialData, onSuccess }: ClientFormProps) {
           name="company"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Company</FormLabel>
+              <FormLabel>{t("form.company")}</FormLabel>
               <FormControl>
                 <Input placeholder="Acme Inc." {...field} value={field.value || ''} />
               </FormControl>
@@ -98,7 +100,7 @@ export function ClientForm({ initialData, onSuccess }: ClientFormProps) {
         />
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Saving..." : "Save Client"}
+            {isPending ? t("form.saving") : t("form.saveClient")}
           </Button>
         </div>
       </form>

@@ -4,6 +4,7 @@ import { useProject, useUpdateProject } from "@/hooks/use-projects";
 import { useClient } from "@/hooks/use-clients";
 import { useTasks, useDeleteTask, useUpdateTask } from "@/hooks/use-tasks";
 import { useCharges, useDeleteCharge } from "@/hooks/use-charges";
+import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +20,7 @@ import { Task } from "@shared/schema";
 export default function ProjectView() {
   const { id } = useParams<{ id: string }>();
   const projectId = parseInt(id, 10);
+  const { t } = useLanguage();
   
   const { data: project, isLoading: loadingProject } = useProject(projectId);
   const { data: client } = useClient(project?.clientId);
@@ -36,13 +38,13 @@ export default function ProjectView() {
   const [editingTask, setEditingTask] = useState<number | null>(null);
   const [editingCharge, setEditingCharge] = useState<number | null>(null);
 
-  if (loadingProject) return <div className="p-8 animate-pulse text-muted-foreground">Loading project...</div>;
-  if (!project) return <div className="p-8 text-center text-muted-foreground">Project not found</div>;
+  if (loadingProject) return <div className="p-8 animate-pulse text-muted-foreground">{t("projects.loadingProject")}</div>;
+  if (!project) return <div className="p-8 text-center text-muted-foreground">{t("projects.notFound")}</div>;
 
   const toggleProjectStatus = async () => {
     const newStatus = project.status === 'active' ? 'completed' : 'active';
     await updateProject.mutateAsync({ id: project.id, status: newStatus });
-    toast({ title: `Project marked as ${newStatus}` });
+    toast({ title: `${t("projects.markedAs")} ${newStatus === 'active' ? t("status.active").toLowerCase() : t("status.completed").toLowerCase()}` });
   };
 
   const toggleTaskStatus = async (task: Task) => {
@@ -73,10 +75,10 @@ export default function ProjectView() {
             {depth === 0 && (
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground">Subtask</Button>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground">{t("tasks.subtask")}</Button>
                 </DialogTrigger>
                 <DialogContent>
-                  <DialogHeader><DialogTitle>Add Subtask to {task.title}</DialogTitle></DialogHeader>
+                  <DialogHeader><DialogTitle>{t("tasks.addSubtaskTo")} {task.title}</DialogTitle></DialogHeader>
                   <TaskForm projectId={projectId} parentId={task.id} />
                 </DialogContent>
               </Dialog>
@@ -87,7 +89,7 @@ export default function ProjectView() {
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><Edit className="w-3.5 h-3.5" /></Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle>Edit Task</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{t("tasks.editTask")}</DialogTitle></DialogHeader>
                 <TaskForm projectId={projectId} initialData={task} onSuccess={() => setEditingTask(null)} />
               </DialogContent>
             </Dialog>
@@ -111,7 +113,7 @@ export default function ProjectView() {
       <div>
         <Link href="/projects" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-primary transition-colors mb-4">
           <ArrowLeft className="w-4 h-4 mr-1" />
-          Back to Projects
+          {t("projects.backToProjects")}
         </Link>
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-card p-6 rounded-2xl border border-border/50 shadow-sm">
@@ -119,13 +121,13 @@ export default function ProjectView() {
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-2xl font-bold tracking-tight text-foreground">{project.name}</h1>
               <Badge variant={project.status === 'active' ? "default" : "secondary"}>
-                {project.status === 'active' ? 'Active' : 'Completed'}
+                {project.status === 'active' ? t("status.active") : t("status.completed")}
               </Badge>
             </div>
-            <p className="text-muted-foreground">{project.description || 'No description provided'}</p>
+            <p className="text-muted-foreground">{project.description || t("projects.noDescription")}</p>
             {client && (
               <div className="mt-3 text-sm">
-                <span className="text-muted-foreground">Client:</span> <Link href={`/clients/${client.id}`} className="font-medium hover:underline">{client.name}</Link>
+                <span className="text-muted-foreground">{t("projects.client")}:</span> <Link href={`/clients/${client.id}`} className="font-medium hover:underline">{client.name}</Link>
               </div>
             )}
           </div>
@@ -135,28 +137,28 @@ export default function ProjectView() {
             onClick={toggleProjectStatus}
             className="shrink-0"
           >
-            {project.status === 'active' ? 'Mark as Completed' : 'Reopen Project'}
+            {project.status === 'active' ? t("projects.markCompleted") : t("projects.reopenProject")}
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="tasks" className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="tasks">Tasks & Subtasks</TabsTrigger>
-          <TabsTrigger value="charges">Charges</TabsTrigger>
+          <TabsTrigger value="tasks">{t("tasks.tasksAndSubtasks")}</TabsTrigger>
+          <TabsTrigger value="charges">{t("charges.title")}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="tasks" className="mt-6 space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Tasks</h3>
+            <h3 className="text-lg font-semibold">{t("tasks.title")}</h3>
             <Dialog open={isTaskOpen} onOpenChange={setIsTaskOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="hover-elevate">
-                  <Plus className="w-4 h-4 mr-1" /> Add Task
+                  <Plus className="w-4 h-4 mr-1" /> {t("tasks.addTask")}
                 </Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle>Create Task</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{t("tasks.createTask")}</DialogTitle></DialogHeader>
                 <TaskForm projectId={projectId} onSuccess={() => setIsTaskOpen(false)} />
               </DialogContent>
             </Dialog>
@@ -170,7 +172,7 @@ export default function ProjectView() {
               </div>
             ) : rootTasks.length === 0 ? (
               <div className="text-center py-12 border border-dashed rounded-xl text-muted-foreground">
-                No tasks yet. Create one to get started.
+                {t("tasks.noTasks")}
               </div>
             ) : (
               rootTasks.map(task => renderTaskRow(task))
@@ -180,15 +182,15 @@ export default function ProjectView() {
         
         <TabsContent value="charges" className="mt-6 space-y-4">
           <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold">Project Charges</h3>
+            <h3 className="text-lg font-semibold">{t("charges.projectCharges")}</h3>
             <Dialog open={isChargeOpen} onOpenChange={setIsChargeOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="hover-elevate">
-                  <Plus className="w-4 h-4 mr-1" /> Add Charge
+                  <Plus className="w-4 h-4 mr-1" /> {t("charges.addCharge")}
                 </Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle>Add Charge</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{t("charges.addCharge")}</DialogTitle></DialogHeader>
                 <ChargeForm projectId={projectId} onSuccess={() => setIsChargeOpen(false)} />
               </DialogContent>
             </Dialog>
@@ -197,10 +199,10 @@ export default function ProjectView() {
           <Card className="border-border/50 shadow-sm">
             <CardContent className="p-0">
               {loadingCharges ? (
-                <div className="p-6 text-center text-muted-foreground">Loading charges...</div>
+                <div className="p-6 text-center text-muted-foreground">{t("charges.loadingCharges")}</div>
               ) : charges?.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground">
-                  No charges applied to this project.
+                  {t("charges.noCharges")}
                 </div>
               ) : (
                 <div className="divide-y divide-border/30">
@@ -220,7 +222,7 @@ export default function ProjectView() {
                             )}
                             {charge.discountPercentage > 0 && (
                               <span className="text-destructive text-xs font-medium">
-                                {charge.discountPercentage}% off applied
+                                {charge.discountPercentage}% {t("charges.offApplied")}
                               </span>
                             )}
                           </div>
@@ -240,7 +242,7 @@ export default function ProjectView() {
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><Edit className="w-4 h-4" /></Button>
                               </DialogTrigger>
                               <DialogContent>
-                                <DialogHeader><DialogTitle>Edit Charge</DialogTitle></DialogHeader>
+                                <DialogHeader><DialogTitle>{t("charges.editCharge")}</DialogTitle></DialogHeader>
                                 <ChargeForm projectId={projectId} initialData={charge} onSuccess={() => setEditingCharge(null)} />
                               </DialogContent>
                             </Dialog>
@@ -253,7 +255,7 @@ export default function ProjectView() {
                     );
                   })}
                   <div className="p-4 bg-muted/20 border-t-2 border-border font-bold flex justify-between items-center rounded-b-xl">
-                    <span>Total Project Value</span>
+                    <span>{t("projects.totalValue")}</span>
                     <span className="text-xl">
                       {formatMoney(charges?.reduce((acc, c) => acc + calculateChargeFinal(c.amount, c.discountPercentage), 0) || 0)}
                     </span>

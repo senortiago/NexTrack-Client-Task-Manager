@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { FileText, FileDown, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { el, enUS } from "date-fns/locale";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Document, Packer, Paragraph, TextRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, AlignmentType, BorderStyle, HeadingLevel, WidthType } from "docx";
@@ -69,8 +70,9 @@ export default function ReportsPage() {
   const { data: allProjects } = useProjects();
   const { data: allCharges, isLoading: loadingCharges } = useCharges();
   const { data: allTasks } = useTasks();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { toast } = useToast();
+  const dateFnsLocale = language === "el" ? el : enUS;
 
   const [selectedClientId, setSelectedClientId] = useState<string>("all");
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
@@ -115,7 +117,7 @@ export default function ReportsPage() {
         fontName = 'NotoSans';
       } catch (e) {
         console.warn('Could not load Unicode font, falling back to default:', e);
-        toast({ variant: "destructive", title: "Unicode font could not be loaded. Greek characters may not render correctly." });
+        toast({ variant: "destructive", title: language === "el" ? "Η γραμματοσειρά Unicode δεν φορτώθηκε. Οι ελληνικοί χαρακτήρες ενδέχεται να μην εμφανίζονται σωστά." : "Unicode font could not be loaded. Greek characters may not render correctly." });
       }
 
       doc.setFont(fontName);
@@ -124,7 +126,7 @@ export default function ReportsPage() {
       
       doc.setFontSize(10);
       doc.setTextColor(100);
-      doc.text(`${t("reports.generatedOn")}: ${format(new Date(), 'PPP')}`, 14, 30);
+      doc.text(`${t("reports.generatedOn")}: ${format(new Date(), 'PPP', { locale: dateFnsLocale })}`, 14, 30);
       doc.text(`${t("reports.filterClient")}: ${clientName}`, 14, 35);
       doc.text(`${t("reports.filterProject")}: ${projectName}`, 14, 40);
 
@@ -143,7 +145,7 @@ export default function ReportsPage() {
         }
 
         return [
-          charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : t("common.noData"),
+          charge.createdAt ? format(new Date(charge.createdAt), 'PP', { locale: dateFnsLocale }) : t("common.noData"),
           description,
           project?.name || t("common.unknown"),
           formatMoney(charge.amount),
@@ -206,7 +208,7 @@ export default function ReportsPage() {
 
           return new DocxTableRow({
             children: [
-              new DocxTableCell({ children: [new Paragraph(charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : t("common.noData"))] }),
+              new DocxTableCell({ children: [new Paragraph(charge.createdAt ? format(new Date(charge.createdAt), 'PP', { locale: dateFnsLocale }) : t("common.noData"))] }),
               new DocxTableCell({ children: [new Paragraph(description)] }),
               new DocxTableCell({ children: [new Paragraph(project?.name || t("common.unknown"))] }),
               new DocxTableCell({ children: [new Paragraph(formatMoney(charge.amount))] }),
@@ -232,7 +234,7 @@ export default function ReportsPage() {
           properties: {},
           children: [
             new Paragraph({ text: t("reports.title"), heading: HeadingLevel.HEADING_1 }),
-            new Paragraph({ text: `${t("reports.generatedOn")}: ${format(new Date(), 'PPP')}` }),
+            new Paragraph({ text: `${t("reports.generatedOn")}: ${format(new Date(), 'PPP', { locale: dateFnsLocale })}` }),
             new Paragraph({ text: `${t("reports.filterClient")}: ${clientName}` }),
             new Paragraph({ text: `${t("reports.filterProject")}: ${projectName}` }),
             new Paragraph({ text: "" }),
@@ -380,7 +382,7 @@ export default function ReportsPage() {
                     return (
                       <TableRow key={charge.id} className={isFullyDiscounted ? 'opacity-60 bg-muted/20' : ''}>
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {charge.createdAt ? format(new Date(charge.createdAt), 'MMM d, yyyy') : t("common.noData")}
+                          {charge.createdAt ? format(new Date(charge.createdAt), 'PP', { locale: dateFnsLocale }) : t("common.noData")}
                         </TableCell>
                         <TableCell className="font-medium">{displayDescription}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">{project?.name || t("common.unknown")}</TableCell>

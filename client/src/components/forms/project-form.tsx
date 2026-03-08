@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertProjectSchema, type InsertProject, type Project } from "@shared/schema";
 import { useCreateProject, useUpdateProject } from "@/hooks/use-projects";
 import { useClients } from "@/hooks/use-clients";
+import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +32,7 @@ interface ProjectFormProps {
 
 export function ProjectForm({ initialData, clientId, onSuccess }: ProjectFormProps) {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
   const { data: clients } = useClients();
@@ -49,16 +51,16 @@ export function ProjectForm({ initialData, clientId, onSuccess }: ProjectFormPro
     try {
       if (initialData) {
         await updateProject.mutateAsync({ id: initialData.id, ...data });
-        toast({ title: "Project updated successfully" });
+        toast({ title: t("projects.updatedSuccess") });
       } else {
         await createProject.mutateAsync(data);
-        toast({ title: "Project created successfully" });
+        toast({ title: t("projects.createdSuccess") });
       }
       onSuccess?.();
     } catch (error) {
       toast({ 
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Something went wrong", 
+        title: t("common.error"), 
+        description: error instanceof Error ? error.message : t("common.somethingWentWrong"), 
         variant: "destructive" 
       });
     }
@@ -75,14 +77,14 @@ export function ProjectForm({ initialData, clientId, onSuccess }: ProjectFormPro
             name="clientId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Client *</FormLabel>
+                <FormLabel>{t("projects.client")} {t("form.required")}</FormLabel>
                 <Select 
                   onValueChange={(val) => field.onChange(parseInt(val))} 
                   defaultValue={field.value ? field.value.toString() : ""}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a client" />
+                      <SelectValue placeholder={t("form.selectClient")} />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -102,7 +104,7 @@ export function ProjectForm({ initialData, clientId, onSuccess }: ProjectFormPro
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Project Name *</FormLabel>
+              <FormLabel>{t("form.projectName")} {t("form.required")}</FormLabel>
               <FormControl>
                 <Input placeholder="Website Redesign" {...field} />
               </FormControl>
@@ -116,9 +118,9 @@ export function ProjectForm({ initialData, clientId, onSuccess }: ProjectFormPro
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>{t("form.description")}</FormLabel>
               <FormControl>
-                <Textarea placeholder="Details about the project..." {...field} value={field.value || ''} />
+                <Textarea placeholder="..." {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -130,16 +132,16 @@ export function ProjectForm({ initialData, clientId, onSuccess }: ProjectFormPro
           name="status"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Status</FormLabel>
+              <FormLabel>{t("form.status")}</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder={t("form.selectStatus")} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="active">{t("status.active")}</SelectItem>
+                  <SelectItem value="completed">{t("status.completed")}</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -149,7 +151,7 @@ export function ProjectForm({ initialData, clientId, onSuccess }: ProjectFormPro
 
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Saving..." : "Save Project"}
+            {isPending ? t("form.saving") : t("form.saveProject")}
           </Button>
         </div>
       </form>

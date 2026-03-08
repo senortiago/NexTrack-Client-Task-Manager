@@ -23,14 +23,14 @@ export default function SettingsPage() {
               <Globe className="w-5 h-5 text-primary" />
               <CardTitle>{t("settings.language")}</CardTitle>
             </div>
-            <CardDescription>Select your preferred interface language</CardDescription>
+            <CardDescription>{t("settings.languageDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="language-select">{t("settings.language")}</Label>
               <Select value={language} onValueChange={(val: "en" | "el") => setLanguage(val)}>
                 <SelectTrigger id="language-select" className="w-full max-w-xs">
-                  <SelectValue placeholder="Select Language" />
+                  <SelectValue placeholder={t("settings.selectLanguage")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="en">English</SelectItem>
@@ -48,14 +48,14 @@ export default function SettingsPage() {
               <Moon className="w-5 h-5 text-primary hidden dark:block" />
               <CardTitle>{t("settings.theme")}</CardTitle>
             </div>
-            <CardDescription>Choose how NexTrack looks on your device</CardDescription>
+            <CardDescription>{t("settings.themeDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-2">
               <Label htmlFor="theme-select">{t("settings.theme")}</Label>
               <Select value={theme} onValueChange={(val) => setTheme(val)}>
                 <SelectTrigger id="theme-select" className="w-full max-w-xs">
-                  <SelectValue placeholder="Select Theme" />
+                  <SelectValue placeholder={t("settings.selectTheme")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="light">

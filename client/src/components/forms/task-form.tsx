@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertTaskSchema, type InsertTask, type Task } from "@shared/schema";
 import { useCreateTask, useUpdateTask } from "@/hooks/use-tasks";
+import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +32,7 @@ interface TaskFormProps {
 
 export function TaskForm({ projectId, parentId, initialData, onSuccess }: TaskFormProps) {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   
@@ -49,16 +51,16 @@ export function TaskForm({ projectId, parentId, initialData, onSuccess }: TaskFo
     try {
       if (initialData) {
         await updateTask.mutateAsync({ id: initialData.id, ...data });
-        toast({ title: "Task updated successfully" });
+        toast({ title: t("tasks.updatedSuccess") });
       } else {
         await createTask.mutateAsync(data);
-        toast({ title: "Task created successfully" });
+        toast({ title: t("tasks.createdSuccess") });
       }
       onSuccess?.();
     } catch (error) {
       toast({ 
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Something went wrong", 
+        title: t("common.error"), 
+        description: error instanceof Error ? error.message : t("common.somethingWentWrong"), 
         variant: "destructive" 
       });
     }
@@ -74,9 +76,9 @@ export function TaskForm({ projectId, parentId, initialData, onSuccess }: TaskFo
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Task Title *</FormLabel>
+              <FormLabel>{t("form.taskTitle")} {t("form.required")}</FormLabel>
               <FormControl>
-                <Input placeholder="Design homepage" {...field} />
+                <Input placeholder="..." {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -88,9 +90,9 @@ export function TaskForm({ projectId, parentId, initialData, onSuccess }: TaskFo
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>{t("form.description")}</FormLabel>
               <FormControl>
-                <Textarea placeholder="Add details..." {...field} value={field.value || ''} />
+                <Textarea placeholder="..." {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -102,17 +104,17 @@ export function TaskForm({ projectId, parentId, initialData, onSuccess }: TaskFo
           name="status"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Status</FormLabel>
+              <FormLabel>{t("form.status")}</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder={t("form.selectStatus")} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="todo">To Do</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="done">Done</SelectItem>
+                  <SelectItem value="todo">{t("status.todo")}</SelectItem>
+                  <SelectItem value="in_progress">{t("status.inProgress")}</SelectItem>
+                  <SelectItem value="done">{t("status.done")}</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -122,7 +124,7 @@ export function TaskForm({ projectId, parentId, initialData, onSuccess }: TaskFo
 
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Saving..." : "Save Task"}
+            {isPending ? t("form.saving") : t("form.saveTask")}
           </Button>
         </div>
       </form>

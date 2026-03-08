@@ -4,6 +4,7 @@ import { z } from "zod";
 import { insertChargeSchema, type InsertCharge, type Charge } from "@shared/schema";
 import { useCreateCharge, useUpdateCharge } from "@/hooks/use-charges";
 import { useTasks } from "@/hooks/use-tasks";
+import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,7 +32,6 @@ interface ChargeFormProps {
   onSuccess?: () => void;
 }
 
-// Custom schema for form (handles dollars)
 const formSchema = z.object({
   description: z.string().min(1, "Description is required"),
   amountDollars: z.coerce.number().min(0, "Amount must be positive"),
@@ -43,6 +43,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function ChargeForm({ projectId, initialData, onSuccess }: ChargeFormProps) {
   const { toast } = useToast();
+  const { t } = useLanguage();
   const createCharge = useCreateCharge();
   const updateCharge = useUpdateCharge();
   const { data: tasks } = useTasks(projectId);
@@ -62,23 +63,23 @@ export function ChargeForm({ projectId, initialData, onSuccess }: ChargeFormProp
       const chargeData: InsertCharge = {
         projectId,
         description: data.description,
-        amount: Math.round(data.amountDollars * 100), // Convert to cents
+        amount: Math.round(data.amountDollars * 100),
         discountPercentage: data.discountPercentage,
         taskId: data.taskId || null,
       };
 
       if (initialData) {
         await updateCharge.mutateAsync({ id: initialData.id, ...chargeData });
-        toast({ title: "Charge updated successfully" });
+        toast({ title: t("charges.updatedSuccess") });
       } else {
         await createCharge.mutateAsync(chargeData);
-        toast({ title: "Charge created successfully" });
+        toast({ title: t("charges.createdSuccess") });
       }
       onSuccess?.();
     } catch (error) {
       toast({ 
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Something went wrong", 
+        title: t("common.error"), 
+        description: error instanceof Error ? error.message : t("common.somethingWentWrong"), 
         variant: "destructive" 
       });
     }
@@ -94,9 +95,9 @@ export function ChargeForm({ projectId, initialData, onSuccess }: ChargeFormProp
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description *</FormLabel>
+              <FormLabel>{t("form.description")} {t("form.required")}</FormLabel>
               <FormControl>
-                <Textarea placeholder="Consulting hours..." {...field} />
+                <Textarea placeholder="..." {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -109,7 +110,7 @@ export function ChargeForm({ projectId, initialData, onSuccess }: ChargeFormProp
             name="amountDollars"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Amount ($) *</FormLabel>
+                <FormLabel>{t("form.amount")} {t("form.required")}</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" min="0" {...field} />
                 </FormControl>
@@ -123,11 +124,11 @@ export function ChargeForm({ projectId, initialData, onSuccess }: ChargeFormProp
             name="discountPercentage"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Discount (%)</FormLabel>
+                <FormLabel>{t("form.discount")}</FormLabel>
                 <FormControl>
                   <Input type="number" step="1" min="0" max="100" {...field} />
                 </FormControl>
-                <FormDescription>100 = Fully discounted</FormDescription>
+                <FormDescription>{t("form.discountHint")}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -139,18 +140,18 @@ export function ChargeForm({ projectId, initialData, onSuccess }: ChargeFormProp
           name="taskId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Assign to Task (Optional)</FormLabel>
+              <FormLabel>{t("form.assignToTask")}</FormLabel>
               <Select 
                 onValueChange={(val) => field.onChange(val === "none" ? null : parseInt(val))} 
                 value={field.value ? field.value.toString() : "none"}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a task" />
+                    <SelectValue placeholder={t("form.selectTask")} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="none">-- None --</SelectItem>
+                  <SelectItem value="none">{t("form.none")}</SelectItem>
                   {tasks?.map((t) => (
                     <SelectItem key={t.id} value={t.id.toString()}>{t.title}</SelectItem>
                   ))}
@@ -163,7 +164,7 @@ export function ChargeForm({ projectId, initialData, onSuccess }: ChargeFormProp
 
         <div className="flex justify-end pt-4">
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Saving..." : "Save Charge"}
+            {isPending ? t("form.saving") : t("form.saveCharge")}
           </Button>
         </div>
       </form>

@@ -35,9 +35,9 @@ export default function ProjectsPage() {
   const handleDelete = async (id: number) => {
     try {
       await deleteProject.mutateAsync(id);
-      toast({ title: "Project deleted successfully" });
+      toast({ title: t("projects.deletedSuccess") });
     } catch (error) {
-      toast({ variant: "destructive", title: "Failed to delete project" });
+      toast({ variant: "destructive", title: t("projects.deletedError") });
     }
   };
 
@@ -58,7 +58,7 @@ export default function ProjectsPage() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Project</DialogTitle>
+              <DialogTitle>{t("projects.createProject")}</DialogTitle>
             </DialogHeader>
             <ProjectForm onSuccess={() => setIsCreateOpen(false)} />
           </DialogContent>
@@ -100,14 +100,14 @@ export default function ProjectsPage() {
                           {project.name}
                         </Link>
                         <Badge variant={project.status === 'active' ? "default" : "secondary"} className="no-default-active-elevate">
-                          {project.status === 'active' ? 'Active' : 'Completed'}
+                          {project.status === 'active' ? t("status.active") : t("status.completed")}
                         </Badge>
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {client ? (
-                          <span>Client: <Link href={`/clients/${client.id}`} className="hover:underline">{client.name}</Link></span>
+                          <span>{t("projects.client")}: <Link href={`/clients/${client.id}`} className="hover:underline">{client.name}</Link></span>
                         ) : (
-                          'Unknown Client'
+                          t("projects.unknownClient")
                         )}
                       </div>
                     </div>
@@ -122,7 +122,7 @@ export default function ProjectsPage() {
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
-                              <DialogTitle>Edit Project</DialogTitle>
+                              <DialogTitle>{t("projects.editProject")}</DialogTitle>
                             </DialogHeader>
                             <ProjectForm initialData={project} clientId={project.clientId} onSuccess={() => setEditingProject(null)} />
                           </DialogContent>
@@ -136,15 +136,15 @@ export default function ProjectsPage() {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Project</AlertDialogTitle>
+                              <AlertDialogTitle>{t("projects.deleteProject")}</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure? This action cannot be undone. All tasks and charges within this project will be deleted.
+                                {t("projects.deleteConfirm")}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                               <AlertDialogAction onClick={() => handleDelete(project.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                Delete
+                                {t("common.delete")}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -153,7 +153,7 @@ export default function ProjectsPage() {
                       
                       <Link href={`/projects/${project.id}`}>
                         <Button variant="secondary" className="hover-elevate">
-                          Open Project
+                          {t("projects.openProject")}
                           <ChevronRight className="w-4 h-4 ml-1 opacity-70" />
                         </Button>
                       </Link>

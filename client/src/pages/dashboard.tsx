@@ -109,19 +109,19 @@ export default function Dashboard() {
                           <Link href={`/projects/${project.id}`} className="font-medium hover:text-primary transition-colors">
                             {project.name}
                           </Link>
-                          <div className="text-sm text-muted-foreground mt-0.5">{client?.name || 'Unknown Client'}</div>
+                          <div className="text-sm text-muted-foreground mt-0.5">{client?.name || t("dashboard.unknownClient")}</div>
                         </div>
                         <div className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                           project.status === 'active' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
                         }`}>
-                          {project.status === 'active' ? 'Active' : 'Completed'}
+                          {project.status === 'active' ? t("status.active") : t("status.completed")}
                         </div>
                       </div>
                     );
                   })}
                   {(!projects || projects.length === 0) && (
                     <div className="text-center py-8 text-muted-foreground text-sm">
-                      No projects found. Create one to get started.
+                      {t("dashboard.noProjects")}
                     </div>
                   )}
                 </div>
@@ -140,7 +140,7 @@ export default function Dashboard() {
                         <Link href={`/clients/${client.id}`} className="font-medium hover:text-primary transition-colors">
                           {client.name}
                         </Link>
-                        <div className="text-sm text-muted-foreground mt-0.5">{client.company || 'No company specified'}</div>
+                        <div className="text-sm text-muted-foreground mt-0.5">{client.company || t("dashboard.noCompany")}</div>
                       </div>
                       <Link href={`/clients/${client.id}`}>
                         <Button variant="ghost" size="sm" className="h-8">{t("common.view")}</Button>
@@ -149,7 +149,7 @@ export default function Dashboard() {
                   ))}
                   {(!clients || clients.length === 0) && (
                     <div className="text-center py-8 text-muted-foreground text-sm">
-                      No clients found. Add a client to get started.
+                      {t("dashboard.noClients")}
                     </div>
                   )}
                 </div>
