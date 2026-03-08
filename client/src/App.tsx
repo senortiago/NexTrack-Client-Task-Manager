@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/hooks/use-language";
+import { CurrencyProvider } from "@/hooks/use-currency";
 import NotFound from "@/pages/not-found";
 
 // Pages
@@ -43,7 +44,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <LanguageProvider>
-          <TooltipProvider>
+          <CurrencyProvider>
+            <TooltipProvider>
             <SidebarProvider style={style}>
               <div className="flex h-screen w-full bg-background overflow-hidden">
                 <AppSidebar />
@@ -58,7 +60,8 @@ function App() {
               </div>
             </SidebarProvider>
             <Toaster />
-          </TooltipProvider>
+            </TooltipProvider>
+          </CurrencyProvider>
         </LanguageProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -9,13 +9,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ProjectForm } from "@/components/forms/project-form";
 import { ArrowLeft, Building, Mail, FolderPlus, Clock, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
-import { el, enUS } from "date-fns/locale";
+import { de, el, enUS, es, fr, it } from "date-fns/locale";
 
 export default function ClientView() {
   const { id } = useParams<{ id: string }>();
   const clientId = parseInt(id, 10);
   const { t, language } = useLanguage();
-  const dateFnsLocale = language === "el" ? el : enUS;
+  const dateFnsLocaleMap: Record<string, Locale> = { de, el, en: enUS, es, fr, it };
+  const dateFnsLocale = dateFnsLocaleMap[language] || enUS;
   
   const { data: client, isLoading: loadingClient } = useClient(clientId);
   const { data: projects, isLoading: loadingProjects } = useProjects(clientId);

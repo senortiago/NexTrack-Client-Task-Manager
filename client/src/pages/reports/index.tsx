@@ -7,12 +7,13 @@ import { useLanguage } from "@/hooks/use-language";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatMoney, calculateChargeFinal, calculateChargeDiscount } from "@/lib/format";
+import { calculateChargeFinal, calculateChargeDiscount } from "@/lib/format";
+import { useCurrency } from "@/hooks/use-currency";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { FileText, FileDown, Loader2 } from "lucide-react";
 import { format } from "date-fns";
-import { el, enUS } from "date-fns/locale";
+import { de, el, enUS, es, fr, it } from "date-fns/locale";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Document, Packer, Paragraph, TextRun, Table as DocxTable, TableRow as DocxTableRow, TableCell as DocxTableCell, AlignmentType, BorderStyle, HeadingLevel, WidthType } from "docx";
@@ -72,7 +73,9 @@ export default function ReportsPage() {
   const { data: allTasks } = useTasks();
   const { t, language } = useLanguage();
   const { toast } = useToast();
-  const dateFnsLocale = language === "el" ? el : enUS;
+  const { formatMoney } = useCurrency();
+  const dateFnsLocaleMap: Record<string, Locale> = { de, el, en: enUS, es, fr, it };
+  const dateFnsLocale = dateFnsLocaleMap[language] || enUS;
 
   const [selectedClientId, setSelectedClientId] = useState<string>("all");
   const [selectedProjectId, setSelectedProjectId] = useState<string>("all");
@@ -117,7 +120,7 @@ export default function ReportsPage() {
         fontName = 'NotoSans';
       } catch (e) {
         console.warn('Could not load Unicode font, falling back to default:', e);
-        toast({ variant: "destructive", title: language === "el" ? "Η γραμματοσειρά Unicode δεν φορτώθηκε. Οι ελληνικοί χαρακτήρες ενδέχεται να μην εμφανίζονται σωστά." : "Unicode font could not be loaded. Greek characters may not render correctly." });
+        toast({ variant: "destructive", title: t("reports.fontError") });
       }
 
       doc.setFont(fontName);

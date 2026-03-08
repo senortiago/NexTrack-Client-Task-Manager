@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { TaskForm } from "@/components/forms/task-form";
 import { ChargeForm } from "@/components/forms/charge-form";
 import { ArrowLeft, Plus, CheckCircle, Circle, Edit, Trash2, Tag, DollarSign } from "lucide-react";
-import { formatMoney, calculateChargeFinal } from "@/lib/format";
+import { calculateChargeFinal } from "@/lib/format";
+import { useCurrency } from "@/hooks/use-currency";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Task } from "@shared/schema";
@@ -21,6 +22,7 @@ export default function ProjectView() {
   const { id } = useParams<{ id: string }>();
   const projectId = parseInt(id, 10);
   const { t } = useLanguage();
+  const { formatMoney } = useCurrency();
   
   const { data: project, isLoading: loadingProject } = useProject(projectId);
   const { data: client } = useClient(project?.clientId);

@@ -5,6 +5,7 @@ import { insertChargeSchema, type InsertCharge, type Charge } from "@shared/sche
 import { useCreateCharge, useUpdateCharge } from "@/hooks/use-charges";
 import { useTasks } from "@/hooks/use-tasks";
 import { useLanguage } from "@/hooks/use-language";
+import { useCurrency } from "@/hooks/use-currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,6 +45,7 @@ type FormValues = z.infer<typeof formSchema>;
 export function ChargeForm({ projectId, initialData, onSuccess }: ChargeFormProps) {
   const { toast } = useToast();
   const { t } = useLanguage();
+  const { currencySymbol } = useCurrency();
   const createCharge = useCreateCharge();
   const updateCharge = useUpdateCharge();
   const { data: tasks } = useTasks(projectId);
@@ -110,7 +112,7 @@ export function ChargeForm({ projectId, initialData, onSuccess }: ChargeFormProp
             name="amountDollars"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t("form.amount")} {t("form.required")}</FormLabel>
+                <FormLabel>{t("form.amount")} ({currencySymbol}) {t("form.required")}</FormLabel>
                 <FormControl>
                   <Input type="number" step="0.01" min="0" {...field} />
                 </FormControl>

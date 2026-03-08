@@ -4,7 +4,8 @@ import { useCharges } from "@/hooks/use-charges";
 import { useLanguage } from "@/hooks/use-language";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, FolderKanban, DollarSign, Activity } from "lucide-react";
-import { formatMoney, calculateChargeFinal } from "@/lib/format";
+import { calculateChargeFinal } from "@/lib/format";
+import { useCurrency } from "@/hooks/use-currency";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 
@@ -13,6 +14,7 @@ export default function Dashboard() {
   const { data: projects, isLoading: loadingProjects } = useProjects();
   const { data: charges, isLoading: loadingCharges } = useCharges();
   const { t } = useLanguage();
+  const { formatMoney } = useCurrency();
 
   const totalClients = clients?.length || 0;
   const activeProjects = projects?.filter(p => p.status === 'active').length || 0;
