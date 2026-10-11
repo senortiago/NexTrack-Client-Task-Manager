@@ -2,7 +2,11 @@
 
 A modern fullstack client task, project, and financial service tracking application built with React 18, Express, and Drizzle ORM.
 
+![NexTrack Dashboard Screenshot](./dasshot.png)
+
 ---
+
+## Features
 
 - **Project Progress Tracking**: Uniformly aligned visual progress bars calculated dynamically from completed tasks and subtasks across the project list, project detail view, client pages, and the main dashboard.
 - **Enhanced Main Menu & Navigation Bar**:
