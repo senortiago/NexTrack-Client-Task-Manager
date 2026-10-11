@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useClients } from "@/hooks/use-clients";
 import { useProjects } from "@/hooks/use-projects";
 import { useCharges } from "@/hooks/use-charges";
+import { usePayments } from "@/hooks/use-payments";
 import { useTasks } from "@/hooks/use-tasks";
 import { useLanguage } from "@/hooks/use-language";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +13,7 @@ import { useCurrency } from "@/hooks/use-currency";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { FileText, FileDown, Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { format, type Locale } from "date-fns";
 import { de, el, enUS, es, fr, it } from "date-fns/locale";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -70,6 +71,7 @@ export default function ReportsPage() {
   const { data: clients } = useClients();
   const { data: allProjects } = useProjects();
   const { data: allCharges, isLoading: loadingCharges } = useCharges();
+  const { data: allPayments } = usePayments();
   const { data: allTasks } = useTasks();
   const { t, language } = useLanguage();
   const { toast } = useToast();
@@ -105,6 +107,11 @@ export default function ReportsPage() {
   const subtotal = activeCharges.reduce((acc, c) => acc + c.amount, 0);
   const totalDiscounts = activeCharges.reduce((acc, c) => acc + calculateChargeDiscount(c.amount, c.discountPercentage), 0);
   const total = subtotal - totalDiscounts;
+  const totalCollected = activeCharges.reduce((acc, c) => {
+    const cPayments = allPayments?.filter(p => p.chargeId === c.id) || [];
+    return acc + cPayments.reduce((sum, p) => sum + p.amount, 0);
+  }, 0);
+  const totalOutstanding = Math.max(0, total - totalCollected);
 
   const exportPDF = async () => {
     setIsExporting("pdf");
@@ -137,6 +144,12 @@ export default function ReportsPage() {
         const project = allProjects?.find(p => p.id === charge.projectId);
         const task = allTasks?.find(t => t.id === charge.taskId);
         const finalAmount = calculateChargeFinal(charge.amount, charge.discountPercentage);
+        const cPayments = allPayments?.filter(p => p.chargeId === charge.id) || [];
+        const paidAmount = cPayments.reduce((sum, p) => sum + p.amount, 0);
+        const balanceDue = Math.max(0, finalAmount - paidAmount);
+        const isPaid = finalAmount === 0 || paidAmount >= finalAmount;
+        const isPartial = !isPaid && paidAmount > 0;
+        const statusText = isPaid ? t("payments.paid") : isPartial ? t("payments.partial") : t("payments.unpaid");
         
         let description = charge.description;
         if (task) {
@@ -153,21 +166,37 @@ export default function ReportsPage() {
           project?.name || t("common.unknown"),
           formatMoney(charge.amount),
           charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-',
-          formatMoney(finalAmount)
+          formatMoney(finalAmount),
+          formatMoney(paidAmount),
+          formatMoney(balanceDue),
+          statusText
         ];
       });
 
       autoTable(doc, {
         startY: 50,
-        head: [[t("reports.colDate"), t("reports.colDescription"), t("reports.colProject"), t("reports.colBase"), t("reports.colDiscountShort"), t("reports.colFinal")]],
+        head: [[
+          t("reports.colDate"), 
+          t("reports.colDescription"), 
+          t("reports.colProject"), 
+          t("reports.colBase"), 
+          t("reports.colDiscountShort"), 
+          t("reports.colFinal"),
+          t("reports.colPaid"),
+          t("reports.colBalance"),
+          t("reports.colStatus")
+        ]],
         body: tableData,
         foot: [[
           '', '', t("reports.totals"), 
           formatMoney(subtotal), 
           `-${formatMoney(totalDiscounts)}`, 
-          formatMoney(total)
+          formatMoney(total),
+          formatMoney(totalCollected),
+          formatMoney(totalOutstanding),
+          ''
         ]],
-        styles: { font: fontName },
+        styles: { font: fontName, fontSize: 8 },
         headStyles: { font: fontName, fontStyle: 'bold' },
         bodyStyles: { font: fontName },
         footStyles: { font: fontName, fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
@@ -194,11 +223,21 @@ export default function ReportsPage() {
             new DocxTableCell({ children: [new Paragraph({ text: t("reports.colBase"), style: "bold" })] }),
             new DocxTableCell({ children: [new Paragraph({ text: t("reports.colDiscountShort"), style: "bold" })] }),
             new DocxTableCell({ children: [new Paragraph({ text: t("reports.colFinal"), style: "bold" })] }),
+            new DocxTableCell({ children: [new Paragraph({ text: t("reports.colPaid"), style: "bold" })] }),
+            new DocxTableCell({ children: [new Paragraph({ text: t("reports.colBalance"), style: "bold" })] }),
+            new DocxTableCell({ children: [new Paragraph({ text: t("reports.colStatus"), style: "bold" })] }),
           ],
         }),
         ...activeCharges.map(charge => {
           const project = allProjects?.find(p => p.id === charge.projectId);
           const task = allTasks?.find(t => t.id === charge.taskId);
+          const finalAmount = calculateChargeFinal(charge.amount, charge.discountPercentage);
+          const cPayments = allPayments?.filter(p => p.chargeId === charge.id) || [];
+          const paidAmount = cPayments.reduce((sum, p) => sum + p.amount, 0);
+          const balanceDue = Math.max(0, finalAmount - paidAmount);
+          const isPaid = finalAmount === 0 || paidAmount >= finalAmount;
+          const isPartial = !isPaid && paidAmount > 0;
+          const statusText = isPaid ? t("payments.paid") : isPartial ? t("payments.partial") : t("payments.unpaid");
           
           let description = charge.description;
           if (task) {
@@ -216,7 +255,10 @@ export default function ReportsPage() {
               new DocxTableCell({ children: [new Paragraph(project?.name || t("common.unknown"))] }),
               new DocxTableCell({ children: [new Paragraph(formatMoney(charge.amount))] }),
               new DocxTableCell({ children: [new Paragraph(charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-')] }),
-              new DocxTableCell({ children: [new Paragraph(formatMoney(calculateChargeFinal(charge.amount, charge.discountPercentage)))] }),
+              new DocxTableCell({ children: [new Paragraph(formatMoney(finalAmount))] }),
+              new DocxTableCell({ children: [new Paragraph(formatMoney(paidAmount))] }),
+              new DocxTableCell({ children: [new Paragraph(formatMoney(balanceDue))] }),
+              new DocxTableCell({ children: [new Paragraph(statusText)] }),
             ],
           });
         }),
@@ -228,6 +270,9 @@ export default function ReportsPage() {
             new DocxTableCell({ children: [new Paragraph({ text: formatMoney(subtotal), style: "bold" })] }),
             new DocxTableCell({ children: [new Paragraph({ text: `-${formatMoney(totalDiscounts)}`, style: "bold" })] }),
             new DocxTableCell({ children: [new Paragraph({ text: formatMoney(total), style: "bold" })] }),
+            new DocxTableCell({ children: [new Paragraph({ text: formatMoney(totalCollected), style: "bold" })] }),
+            new DocxTableCell({ children: [new Paragraph({ text: formatMoney(totalOutstanding), style: "bold" })] }),
+            new DocxTableCell({ children: [new Paragraph("")] }),
           ],
         }),
       ];
@@ -320,18 +365,34 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-muted/10 border-border/50">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t("reports.subtotal")}</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold">{formatMoney(subtotal)}</div></CardContent>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t("reports.finalTotal")}</CardTitle></CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatMoney(total)}</div>
+            <p className="text-xs text-muted-foreground mt-1">{t("reports.subtotal")}: {formatMoney(subtotal)}</p>
+          </CardContent>
         </Card>
         <Card className="bg-muted/10 border-border/50">
           <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">{t("reports.discounts")}</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold text-destructive">-{formatMoney(totalDiscounts)}</div></CardContent>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">-{formatMoney(totalDiscounts)}</div>
+            <p className="text-xs text-muted-foreground mt-1">{t("charges.offApplied")}</p>
+          </CardContent>
         </Card>
-        <Card className="bg-primary text-primary-foreground border-transparent shadow-md">
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-primary-foreground/80">{t("reports.finalTotal")}</CardTitle></CardHeader>
-          <CardContent><div className="text-3xl font-bold">{formatMoney(total)}</div></CardContent>
+        <Card className="bg-green-500/10 border-green-500/20">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-green-700 dark:text-green-400">{t("payments.totalPaid")}</CardTitle></CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">{formatMoney(totalCollected)}</div>
+            <p className="text-xs text-muted-foreground mt-1">{total > 0 ? Math.round((totalCollected / total) * 100) : 0}% {t("dashboard.collectionRate")}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-amber-500/10 border-amber-500/20">
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-amber-700 dark:text-amber-400">{t("payments.totalOutstanding")}</CardTitle></CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{formatMoney(totalOutstanding)}</div>
+            <p className="text-xs text-muted-foreground mt-1">{t("payments.balanceDue")}</p>
+          </CardContent>
         </Card>
       </div>
 
@@ -358,6 +419,9 @@ export default function ReportsPage() {
                     <TableHead className="text-right">{t("reports.colBaseAmount")}</TableHead>
                     <TableHead className="text-right">{t("reports.colDiscount")}</TableHead>
                     <TableHead className="text-right font-bold">{t("reports.colFinalAmount")}</TableHead>
+                    <TableHead className="text-right text-green-600 dark:text-green-400 font-medium">{t("reports.colPaid")}</TableHead>
+                    <TableHead className="text-right text-amber-600 dark:text-amber-400 font-medium">{t("reports.colBalance")}</TableHead>
+                    <TableHead className="text-center">{t("reports.colStatus")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -366,8 +430,13 @@ export default function ReportsPage() {
                     const task = allTasks?.find(t => t.id === charge.taskId);
                     const finalAmount = calculateChargeFinal(charge.amount, charge.discountPercentage);
                     const isFullyDiscounted = charge.discountPercentage === 100;
+                    const cPayments = allPayments?.filter(p => p.chargeId === charge.id) || [];
+                    const paidAmount = cPayments.reduce((sum, p) => sum + p.amount, 0);
+                    const balanceDue = Math.max(0, finalAmount - paidAmount);
+                    const isPaid = finalAmount === 0 || paidAmount >= finalAmount;
+                    const isPartial = !isPaid && paidAmount > 0;
                     
-                    let displayDescription = charge.description;
+                    let displayDescription: React.ReactNode = charge.description;
                     if (task) {
                       displayDescription = (
                         <div className="flex flex-col">
@@ -394,6 +463,19 @@ export default function ReportsPage() {
                           {charge.discountPercentage > 0 ? `${charge.discountPercentage}%` : '-'}
                         </TableCell>
                         <TableCell className="text-right font-bold">{formatMoney(finalAmount)}</TableCell>
+                        <TableCell className="text-right text-green-600 dark:text-green-400 font-medium">{formatMoney(paidAmount)}</TableCell>
+                        <TableCell className="text-right text-amber-600 dark:text-amber-400 font-medium">{formatMoney(balanceDue)}</TableCell>
+                        <TableCell className="text-center">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            isPaid
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                              : isPartial
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                              : 'bg-muted text-muted-foreground'
+                          }`}>
+                            {isPaid ? t("payments.paid") : isPartial ? t("payments.partial") : t("payments.unpaid")}
+                          </span>
+                        </TableCell>
                       </TableRow>
                     );
                   })}

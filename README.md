@@ -1,172 +1,87 @@
 # NexTrack
 
-A fullstack task and project tracking application for client service management, built with React, Express, and PostgreSQL.
+A modern fullstack client task, project, and financial service tracking application built with React 18, Express, and Drizzle ORM.
 
-## Features
+---
 
-- **Client Management**: Track and organize clients with contact information and company details
-- **Project Tracking**: Create and manage projects with active/completed status tracking
-- **Task Management**: Organize work into tasks with subtask support (hierarchical structure)
-- **Charge Tracking**: Assign service charges to tasks and projects with flexible discounting (0–100%)
-- **Financial Reporting**: Generate detailed PDF and Word reports filtered by client or project
-- **Internationalization**: 6 languages — German, Greek, English, Spanish, French, Italian
-- **Currency Support**: 13 currencies with locale-aware formatting
-- **Theming**: Light, dark, and system theme modes
-- **Branding**: Customizable app name and logo
+- **Project Progress Tracking**: Uniformly aligned visual progress bars calculated dynamically from completed tasks and subtasks across the project list, project detail view, client pages, and the main dashboard.
+- **Enhanced Main Menu & Navigation Bar**:
+  - Polished modern sidebar with live project counter badges and real-time task completion rate summary.
+  - Sticky glass header with contextual page breadcrumb/title, quick project/report navigation links, one-click language selector (6 languages), and theme toggle.
+- **Interactive Task Checklist**: Quick-access task checklist on the main dashboard with filter tabs (Active, All, Done) and instant completion toggles.
+- **Financial Overview & Payment Tracking**:
+  - Record payments against charges with payment date, amount, and notes/methods (Bank wire, Stripe, Cash, etc.).
+  - Automatic balance calculations: tracks Total Invoiced, Total Collected, Remaining Balance Due, and status badges (Paid, Partially Paid, Unpaid).
+  - Expandable payment history and deletion management.
+- **Client Management**: Track clients, contact details, email addresses, and company associations with active/completed project breakdowns.
+- **Project Tracking**: Manage projects with active and completed lifecycle statuses, nested task structures, and client associations.
+- **Hierarchical Task Management**: Create tasks and nested subtasks with instant completion checkboxes and status workflows.
+- **Financial Charge Tracking**: Assign service charges directly to projects and individual tasks with customizable discount percentages (0–100%).
+- **Multi-Format Financial Reporting**: Generate professional PDF reports (with embedded UTF-8 fonts) and Word (.docx) invoices with base amounts, discounts, collected payments, and remaining balances.
+- **Internationalization (i18n)**: Fully translated into 6 languages:
+  - English (`en`)
+  - German (`de`)
+  - Greek (`el`)
+  - Spanish (`es`)
+  - French (`fr`)
+  - Italian (`it`)
+- **Multi-Currency Support**: 13 worldwide currencies with locale-aware symbol placement and formatting (USD, EUR, GBP, JPY, CAD, AUD, CHF, CNY, INR, BRL, MXN, KRW, SEK).
+- **Theming & Custom Branding**: Light, dark, and system themes with custom brand favicon, persistent app name, and company logo upload.
+- **Zero-Setup Local SQLite**: Works out of the box with SQLite (`better-sqlite3`) with zero database installation required. Automatic table migration and sample demo data seeding on first boot.
+
+---
 
 ## Tech Stack
 
-| Layer      | Technologies                                                         |
-|------------|----------------------------------------------------------------------|
-| Frontend   | React 18, Vite, TypeScript, Tailwind CSS, Shadcn/UI, TanStack Query |
-| Backend    | Express.js, Drizzle ORM, PostgreSQL                                  |
-| Reports    | jsPDF + jsPDF-AutoTable (PDF), docx + FileSaver (Word)               |
+| Layer | Technologies |
+|---|---|
+| **Frontend** | React 18, Vite, TypeScript, Tailwind CSS, Shadcn/UI, Radix UI, TanStack Query, Wouter |
+| **Backend** | Express.js, Drizzle ORM, better-sqlite3 |
+| **Reports** | jsPDF + jsPDF-AutoTable (PDF), docx + FileSaver (Word) |
+| **Icons & Design** | Lucide React, Framer Motion |
 
 ---
 
-## Quick Start with Docker
+## Quick Start (Local Development)
 
 ### Prerequisites
+- [Node.js](https://nodejs.org/) version 20 or higher.
 
-- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) installed on your machine.
-
-### Step 1 — Clone the repository
-
-```bash
-git clone <your-repo-url> nextrack
-cd nextrack
+### 1-Click Startup (Windows)
+Double-click `start.bat` in the project directory, or run from PowerShell / Command Prompt:
+```cmd
+.\start.bat
 ```
+This automatically installs dependencies if needed, starts the dev server, and opens [http://localhost:5000](http://localhost:5000) in your default browser.
 
-### Step 2 — Start the database
+### Manual Startup (Any OS)
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-```bash
-docker compose up db -d
-```
+2. **Start the development server**:
+   ```bash
+   npm run dev
+   ```
 
-This starts a PostgreSQL 16 container with a persistent volume (`pgdata`). Your data is preserved across container restarts.
+3. **Open the application**:
+   Navigate to [http://localhost:5000](http://localhost:5000).
 
-Wait a few seconds for the database to become healthy before proceeding.
-
-### Step 3 — Run the database migration
-
-```bash
-docker compose --profile setup run --rm migrate
-```
-
-This pushes the Drizzle schema to PostgreSQL, creating all required tables (clients, projects, tasks, charges). You only need to run this once on first setup, or again after schema changes.
-
-### Step 4 — Build and start the application
-
-```bash
-docker compose up app --build -d
-```
-
-### Step 5 — Open the application
-
-Visit [http://localhost:5000](http://localhost:5000) in your browser. The app is ready to use.
-
-### All-in-one command
-
-To start everything in a single command (useful for first-time setup or after schema changes):
-
-```bash
-docker compose --profile setup run --rm migrate && docker compose up app --build -d
-```
-
-### Stopping the application
-
-```bash
-docker compose down
-```
-
-To also delete the database volume and all stored data:
-
-```bash
-docker compose down -v
-```
+> [!NOTE]
+> On the first startup, SQLite tables are created automatically and populated with initial demo clients, projects, tasks, and charges. Data is persisted in `nextrack.db`.
 
 ---
 
-## Docker Compose Services
+## Available NPM Scripts
 
-| Service   | Description                          | Port |
-|-----------|--------------------------------------|------|
-| `db`      | PostgreSQL 16 with persistent volume | 5432 |
-| `app`     | NexTrack production server           | 5000 |
-| `migrate` | One-shot schema migration (on-demand)| —    |
-
-## Environment Variables
-
-| Variable       | Default                                          | Description               |
-|----------------|--------------------------------------------------|---------------------------|
-| `DATABASE_URL` | `postgresql://nextrack:nextrack@db:5432/nextrack` | PostgreSQL connection URL |
-| `PORT`         | `5000`                                           | Application server port   |
-
-### Customizing database credentials
-
-Edit the `environment` section in `docker-compose.yml` for both the `db` and `app` services. Make sure the `DATABASE_URL` in the `app` and `migrate` services matches the credentials set in the `db` service.
-
----
-
-## Development (without Docker)
-
-### Prerequisites
-
-- Node.js 20+
-- PostgreSQL database
-
-### Setup
-
-1. Clone the repository:
-
-```bash
-git clone <your-repo-url> nextrack
-cd nextrack
-```
-
-2. Install dependencies:
-
-```bash
-npm install
-```
-
-3. Set the database connection string:
-
-```bash
-export DATABASE_URL="postgresql://user:password@localhost:5432/nextrack"
-```
-
-4. Push the database schema:
-
-```bash
-npm run db:push
-```
-
-5. Start the development server:
-
-```bash
-npm run dev
-```
-
-The application will be available at [http://localhost:5000](http://localhost:5000) with hot reload enabled.
-
-### Available scripts
-
-| Script           | Description                                |
-|------------------|--------------------------------------------|
-| `npm run dev`    | Start development server with hot reload   |
-| `npm run build`  | Build frontend and backend for production  |
-| `npm start`      | Run the production build                   |
-| `npm run check`  | Run TypeScript type checking               |
-| `npm run db:push`| Push database schema changes to PostgreSQL |
-
-### Building for production (manual)
-
-```bash
-npm run build
-export DATABASE_URL="postgresql://user:password@localhost:5432/nextrack"
-NODE_ENV=production node dist/index.cjs
-```
+| Script | Description |
+|---|---|
+| `npm run dev` | Start the local development server with Vite hot reload |
+| `npm run build` | Compile the React frontend and bundle the backend server for production |
+| `npm start` | Run the compiled production server (`dist/index.cjs`) |
+| `npm run check` | Run TypeScript type checks across both client and server |
+| `npm run db:push` | Push schema changes to the database using Drizzle Kit |
 
 ---
 
@@ -174,83 +89,28 @@ NODE_ENV=production node dist/index.cjs
 
 ```
 ├── client/src/              # React frontend
-│   ├── components/          # UI components (Shadcn + custom)
-│   ├── hooks/               # Custom hooks (i18n, currency, branding, theme)
-│   ├── pages/               # Page components
-│   └── lib/                 # Utilities (query client, formatting)
+│   ├── components/          # UI components (Shadcn UI + custom form modals)
+│   ├── hooks/               # Custom hooks (i18n, currency, branding, tasks, projects)
+│   ├── pages/               # Application routes
+│   │   ├── dashboard.tsx    # Dashboard with revenue stats & recent project progress
+│   │   ├── clients/         # Client management and individual client views
+│   │   ├── projects/        # Project overview with progress bars & task boards
+│   │   ├── reports/         # PDF & Word report export center
+│   │   └── settings.tsx     # Language, currency, branding, and theme settings
+│   └── lib/                 # Utility helpers (formatting, QueryClient)
 ├── server/                  # Express backend
-│   ├── index.ts             # Server entry point
-│   ├── routes.ts            # API route handlers
-│   ├── storage.ts           # Database access layer
-│   └── db.ts                # Database connection
-├── shared/                  # Shared between frontend and backend
-│   └── schema.ts            # Drizzle schema + Zod validation
-├── Dockerfile               # Multi-stage Docker build
-├── docker-compose.yml       # Docker Compose configuration
+│   ├── index.ts             # Server entry point & Vite middleware integration
+│   ├── routes.ts            # REST API endpoints & demo data seeding
+│   ├── storage.ts           # Storage repository layer
+│   └── db.ts                # Database connection & table bootstrapping
+├── shared/                  # Code shared between frontend and backend
+│   ├── schema.ts            # Drizzle ORM schema definitions & Zod schemas
+│   └── routes.ts            # Typed API contract definitions
+├── start.bat                # 1-Click Windows development launcher
 └── drizzle.config.ts        # Drizzle Kit configuration
 ```
 
-## Database Schema
-
-### Clients
-- `id` — Primary key
-- `name` — Client name (required)
-- `email` — Contact email
-- `company` — Company name
-- `createdAt` — Creation timestamp
-
-### Projects
-- `id` — Primary key
-- `clientId` — Reference to client
-- `name` — Project name (required)
-- `description` — Project description
-- `status` — "active" or "completed"
-- `createdAt` — Creation timestamp
-
-### Tasks
-- `id` — Primary key
-- `projectId` — Reference to project
-- `parentId` — Reference to parent task (for subtasks)
-- `title` — Task title (required)
-- `description` — Task description
-- `status` — "todo", "in_progress", or "done"
-- `createdAt` — Creation timestamp
-
-### Charges
-- `id` — Primary key
-- `projectId` — Reference to project
-- `taskId` — Reference to task (optional)
-- `description` — Charge description (required)
-- `amount` — Amount in cents (required)
-- `discountPercentage` — Discount from 0–100% (default: 0)
-- `createdAt` — Creation timestamp
-
-## API Routes
-
-All routes are prefixed with `/api`.
-
-| Method   | Endpoint              | Description         |
-|----------|-----------------------|---------------------|
-| `GET`    | `/api/clients`        | List all clients    |
-| `POST`   | `/api/clients`        | Create a client     |
-| `GET`    | `/api/clients/:id`    | Get client details  |
-| `PATCH`  | `/api/clients/:id`    | Update a client     |
-| `DELETE` | `/api/clients/:id`    | Delete a client     |
-| `GET`    | `/api/projects`       | List all projects   |
-| `POST`   | `/api/projects`       | Create a project    |
-| `GET`    | `/api/projects/:id`   | Get project details |
-| `PATCH`  | `/api/projects/:id`   | Update a project    |
-| `DELETE` | `/api/projects/:id`   | Delete a project    |
-| `GET`    | `/api/tasks`          | List all tasks      |
-| `POST`   | `/api/tasks`          | Create a task       |
-| `GET`    | `/api/tasks/:id`      | Get task details    |
-| `PATCH`  | `/api/tasks/:id`      | Update a task       |
-| `DELETE` | `/api/tasks/:id`      | Delete a task       |
-| `GET`    | `/api/charges`        | List all charges    |
-| `POST`   | `/api/charges`        | Create a charge     |
-| `GET`    | `/api/charges/:id`    | Get charge details  |
-| `PATCH`  | `/api/charges/:id`    | Update a charge     |
-| `DELETE` | `/api/charges/:id`    | Delete a charge     |
+---
 
 ## License
 

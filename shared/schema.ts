@@ -1,43 +1,52 @@
-import { pgTable, text, serial, integer, boolean, timestamp, numeric } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { relations, sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const clients = pgTable("clients", {
-  id: serial("id").primaryKey(),
+export const clients = sqliteTable("clients", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   email: text("email"),
   company: text("company"),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
 });
 
-export const projects = pgTable("projects", {
-  id: serial("id").primaryKey(),
+export const projects = sqliteTable("projects", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   clientId: integer("client_id").notNull(),
   name: text("name").notNull(),
   description: text("description"),
   status: text("status").notNull().default('active'), // active, completed
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
 });
 
-export const tasks = pgTable("tasks", {
-  id: serial("id").primaryKey(),
+export const tasks = sqliteTable("tasks", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   projectId: integer("project_id").notNull(),
   parentId: integer("parent_id"), // for subtasks
   title: text("title").notNull(),
   description: text("description"),
   status: text("status").notNull().default('todo'), // todo, in_progress, done
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
 });
 
-export const charges = pgTable("charges", {
-  id: serial("id").primaryKey(),
+export const charges = sqliteTable("charges", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   projectId: integer("project_id").notNull(),
   taskId: integer("task_id"), 
   description: text("description").notNull(),
   amount: integer("amount").notNull(), // stored in cents
   discountPercentage: integer("discount_percentage").notNull().default(0), // 0-100
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
+});
+
+export const payments = sqliteTable("payments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  chargeId: integer("charge_id").notNull(),
+  amount: integer("amount").notNull(), // stored in cents
+  paidAt: text("paid_at").default(sql`(datetime('now'))`),
+  note: text("note"),
+  createdAt: text("created_at").default(sql`(datetime('now'))`),
 });
 
 // Relations
@@ -68,7 +77,7 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
   charges: many(charges),
 }));
 
-export const chargesRelations = relations(charges, ({ one }) => ({
+export const chargesRelations = relations(charges, ({ one, many }) => ({
   project: one(projects, {
     fields: [charges.projectId],
     references: [projects.id],
@@ -76,6 +85,14 @@ export const chargesRelations = relations(charges, ({ one }) => ({
   task: one(tasks, {
     fields: [charges.taskId],
     references: [tasks.id],
+  }),
+  payments: many(payments),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  charge: one(charges, {
+    fields: [payments.chargeId],
+    references: [charges.id],
   }),
 }));
 
@@ -86,6 +103,11 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({ id: true, creat
 export const insertChargeSchema = createInsertSchema(charges).omit({ id: true, createdAt: true }).extend({
   amount: z.coerce.number().int().min(0, "Amount must be a positive integer (in cents)"),
   discountPercentage: z.coerce.number().int().min(0).max(100).default(0),
+});
+export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true, createdAt: true }).extend({
+  amount: z.coerce.number().int().min(1, "Amount must be a positive integer (in cents)"),
+  paidAt: z.string().optional(),
+  note: z.string().optional(),
 });
 
 export type Client = typeof clients.$inferSelect;
@@ -99,3 +121,7 @@ export type InsertTask = z.infer<typeof insertTaskSchema>;
 
 export type Charge = typeof charges.$inferSelect;
 export type InsertCharge = z.infer<typeof insertChargeSchema>;
+
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+

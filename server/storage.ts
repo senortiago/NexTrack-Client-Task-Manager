@@ -1,10 +1,11 @@
 import { db } from "./db";
 import {
-  clients, projects, tasks, charges,
+  clients, projects, tasks, charges, payments,
   type InsertClient, type Client,
   type InsertProject, type Project,
   type InsertTask, type Task,
-  type InsertCharge, type Charge
+  type InsertCharge, type Charge,
+  type InsertPayment, type Payment
 } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 
@@ -36,6 +37,12 @@ export interface IStorage {
   createCharge(charge: InsertCharge): Promise<Charge>;
   updateCharge(id: number, updates: Partial<InsertCharge>): Promise<Charge | undefined>;
   deleteCharge(id: number): Promise<void>;
+
+  // Payments
+  getPayments(chargeId?: number): Promise<Payment[]>;
+  getPayment(id: number): Promise<Payment | undefined>;
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  deletePayment(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -156,6 +163,28 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCharge(id: number): Promise<void> {
     await db.delete(charges).where(eq(charges.id, id));
+  }
+
+  // Payments
+  async getPayments(chargeId?: number): Promise<Payment[]> {
+    if (chargeId !== undefined) {
+      return await db.select().from(payments).where(eq(payments.chargeId, chargeId));
+    }
+    return await db.select().from(payments);
+  }
+
+  async getPayment(id: number): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    return payment;
+  }
+
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const [newPayment] = await db.insert(payments).values(payment).returning();
+    return newPayment;
+  }
+
+  async deletePayment(id: number): Promise<void> {
+    await db.delete(payments).where(eq(payments.id, id));
   }
 }
 

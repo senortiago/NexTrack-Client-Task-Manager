@@ -11,10 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { TaskForm } from "@/components/forms/task-form";
 import { ChargeForm } from "@/components/forms/charge-form";
-import { ArrowLeft, Plus, CheckCircle, Circle, Edit, Trash2, Tag, DollarSign } from "lucide-react";
+import { PaymentForm } from "@/components/forms/payment-form";
+import { usePayments, useDeletePayment } from "@/hooks/use-payments";
+import { ArrowLeft, Plus, CheckCircle, Circle, Edit, Trash2, Tag, DollarSign, CreditCard, ChevronDown, ChevronUp, History } from "lucide-react";
 import { calculateChargeFinal } from "@/lib/format";
 import { useCurrency } from "@/hooks/use-currency";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Task } from "@shared/schema";
 
@@ -28,17 +31,21 @@ export default function ProjectView() {
   const { data: client } = useClient(project?.clientId);
   const { data: allTasks, isLoading: loadingTasks } = useTasks(projectId);
   const { data: charges, isLoading: loadingCharges } = useCharges(projectId);
+  const { data: payments } = usePayments();
   
   const updateProject = useUpdateProject();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
   const deleteCharge = useDeleteCharge();
+  const deletePayment = useDeletePayment();
   const { toast } = useToast();
 
   const [isTaskOpen, setIsTaskOpen] = useState(false);
   const [isChargeOpen, setIsChargeOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<number | null>(null);
   const [editingCharge, setEditingCharge] = useState<number | null>(null);
+  const [payingCharge, setPayingCharge] = useState<number | null>(null);
+  const [expandedChargePayments, setExpandedChargePayments] = useState<number | null>(null);
 
   if (loadingProject) return <div className="p-8 animate-pulse text-muted-foreground">{t("projects.loadingProject")}</div>;
   if (!project) return <div className="p-8 text-center text-muted-foreground">{t("projects.notFound")}</div>;
@@ -55,6 +62,9 @@ export default function ProjectView() {
   };
 
   const rootTasks = allTasks?.filter(t => !t.parentId) || [];
+  const totalTasks = allTasks?.length || 0;
+  const completedTasks = allTasks?.filter(t => t.status === 'done').length || 0;
+  const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : (project.status === 'completed' ? 100 : 0);
   
   const renderTaskRow = (task: Task, depth = 0) => {
     const subtasks = allTasks?.filter(t => t.parentId === task.id) || [];
@@ -142,6 +152,22 @@ export default function ProjectView() {
             {project.status === 'active' ? t("projects.markCompleted") : t("projects.reopenProject")}
           </Button>
         </div>
+
+        <div className="bg-card p-5 rounded-2xl border border-border/50 shadow-sm space-y-3">
+          <div className="flex justify-between items-center text-sm">
+            <span className="font-semibold text-foreground flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-primary" />
+              {t("projects.progress")}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">
+                {totalTasks > 0 ? `${completedTasks} / ${totalTasks} ${t("projects.tasksCompleted")}` : t("projects.noTasksYet")}
+              </span>
+              <span className="font-bold text-foreground text-sm">{progressPercent}%</span>
+            </div>
+          </div>
+          <Progress value={progressPercent} className="h-2.5 bg-muted" />
+        </div>
       </div>
 
       <Tabs defaultValue="tasks" className="w-full">
@@ -211,56 +237,188 @@ export default function ProjectView() {
                   {charges?.map(charge => {
                     const finalAmount = calculateChargeFinal(charge.amount, charge.discountPercentage);
                     const task = charge.taskId ? allTasks?.find(t => t.id === charge.taskId) : null;
+                    const chargePayments = payments?.filter(p => p.chargeId === charge.id) || [];
+                    const totalPaid = chargePayments.reduce((acc, p) => acc + p.amount, 0);
+                    const balanceDue = Math.max(0, finalAmount - totalPaid);
+                    const isPaid = finalAmount === 0 || totalPaid >= finalAmount;
+                    const isPartial = !isPaid && totalPaid > 0;
+                    const isExpanded = expandedChargePayments === charge.id;
                     
                     return (
-                      <div key={charge.id} className="p-4 flex items-center justify-between group hover:bg-muted/10 transition-colors">
-                        <div>
-                          <div className="font-medium">{charge.description}</div>
-                          <div className="text-sm text-muted-foreground mt-0.5 flex flex-wrap gap-2 items-center">
-                            {task && (
-                              <span className="inline-flex items-center bg-muted px-2 py-0.5 rounded text-xs">
-                                <Tag className="w-3 h-3 mr-1" /> {task.title}
-                              </span>
-                            )}
-                            {charge.discountPercentage > 0 && (
-                              <span className="text-destructive text-xs font-medium">
-                                {charge.discountPercentage}% {t("charges.offApplied")}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <div className="font-bold text-lg">{formatMoney(finalAmount)}</div>
-                            {charge.discountPercentage > 0 && (
-                              <div className="text-xs text-muted-foreground line-through">{formatMoney(charge.amount)}</div>
-                            )}
+                      <div key={charge.id} className="p-4 transition-colors hover:bg-muted/10 space-y-3">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-foreground text-base">{charge.description}</span>
+                              {isPaid ? (
+                                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                                  {t("payments.paid")}
+                                </span>
+                              ) : isPartial ? (
+                                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                                  {t("payments.partial")}
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-600 border border-rose-500/20">
+                                  {t("payments.unpaid")}
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="text-sm text-muted-foreground flex flex-wrap gap-2 items-center">
+                              {task && (
+                                <span className="inline-flex items-center bg-muted px-2 py-0.5 rounded text-xs">
+                                  <Tag className="w-3 h-3 mr-1" /> {task.title}
+                                </span>
+                              )}
+                              {charge.discountPercentage > 0 && (
+                                <span className="text-destructive text-xs font-medium">
+                                  {charge.discountPercentage}% {t("charges.offApplied")}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           
-                          <div className="flex opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Dialog open={editingCharge === charge.id} onOpenChange={(o) => setEditingCharge(o ? charge.id : null)}>
-                              <DialogTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><Edit className="w-4 h-4" /></Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader><DialogTitle>{t("charges.editCharge")}</DialogTitle></DialogHeader>
-                                <ChargeForm projectId={projectId} initialData={charge} onSuccess={() => setEditingCharge(null)} />
-                              </DialogContent>
-                            </Dialog>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteCharge.mutate(charge.id)}>
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                          <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-4 text-right">
+                              <div>
+                                <div className="text-xs text-muted-foreground">{t("reports.colFinalAmount")}</div>
+                                <div className="font-bold text-base">{formatMoney(finalAmount)}</div>
+                              </div>
+
+                              <div className="border-l border-border/50 pl-4">
+                                <div className="text-xs text-muted-foreground">{t("payments.totalPaid")}</div>
+                                <div className="font-semibold text-emerald-600 text-sm">{formatMoney(totalPaid)}</div>
+                              </div>
+
+                              <div className="border-l border-border/50 pl-4">
+                                <div className="text-xs text-muted-foreground">{t("payments.balanceDue")}</div>
+                                <div className={`font-semibold text-sm ${balanceDue > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                                  {formatMoney(balanceDue)}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              {balanceDue > 0 && (
+                                <Dialog open={payingCharge === charge.id} onOpenChange={(o) => setPayingCharge(o ? charge.id : null)}>
+                                  <DialogTrigger asChild>
+                                    <Button size="sm" variant="outline" className="h-8 gap-1 hover-elevate">
+                                      <CreditCard className="w-3.5 h-3.5" />
+                                      <span className="hidden sm:inline">{t("payments.recordPayment")}</span>
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>{t("payments.recordPayment")}</DialogTitle>
+                                    </DialogHeader>
+                                    <PaymentForm
+                                      chargeId={charge.id}
+                                      remainingAmountDollars={balanceDue / 100}
+                                      onSuccess={() => setPayingCharge(null)}
+                                    />
+                                  </DialogContent>
+                                </Dialog>
+                              )}
+
+                              {chargePayments.length > 0 && (
+                                <Button 
+                                  size="sm" 
+                                  variant="ghost" 
+                                  className="h-8 gap-1 text-xs" 
+                                  onClick={() => setExpandedChargePayments(isExpanded ? null : charge.id)}
+                                >
+                                  <History className="w-3.5 h-3.5 text-muted-foreground" />
+                                  <span>{chargePayments.length}</span>
+                                  {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                </Button>
+                              )}
+
+                              <div className="flex items-center">
+                                <Dialog open={editingCharge === charge.id} onOpenChange={(o) => setEditingCharge(o ? charge.id : null)}>
+                                  <DialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground"><Edit className="w-4 h-4" /></Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader><DialogTitle>{t("charges.editCharge")}</DialogTitle></DialogHeader>
+                                    <ChargeForm projectId={projectId} initialData={charge} onSuccess={() => setEditingCharge(null)} />
+                                  </DialogContent>
+                                </Dialog>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteCharge.mutate(charge.id)}>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
                           </div>
                         </div>
+
+                        {/* Payment history list */}
+                        {isExpanded && chargePayments.length > 0 && (
+                          <div className="p-3 bg-muted/30 rounded-lg border border-border/40 space-y-2 mt-2 animate-in fade-in duration-200">
+                            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                              <History className="w-3 h-3" /> {t("payments.paymentHistory")}
+                            </div>
+                            <div className="divide-y divide-border/20">
+                              {chargePayments.map(payment => (
+                                <div key={payment.id} className="py-2 flex items-center justify-between text-xs">
+                                  <div className="flex items-center gap-3">
+                                    <span className="font-semibold text-foreground">{formatMoney(payment.amount)}</span>
+                                    <span className="text-muted-foreground">{payment.paidAt ? payment.paidAt.split('T')[0] : ''}</span>
+                                    {payment.note && (
+                                      <span className="bg-background px-2 py-0.5 rounded border border-border/40 text-muted-foreground">
+                                        {payment.note}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-6 w-6 text-muted-foreground hover:text-destructive" 
+                                    onClick={() => deletePayment.mutate(payment.id)}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
-                  <div className="p-4 bg-muted/20 border-t-2 border-border font-bold flex justify-between items-center rounded-b-xl">
-                    <span>{t("projects.totalValue")}</span>
-                    <span className="text-xl">
-                      {formatMoney(charges?.reduce((acc, c) => acc + calculateChargeFinal(c.amount, c.discountPercentage), 0) || 0)}
-                    </span>
+
+                  {/* Summary Totals */}
+                  <div className="p-5 bg-muted/20 border-t-2 border-border grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-b-xl">
+                    <div>
+                      <div className="text-xs font-medium text-muted-foreground uppercase">{t("projects.totalValue")}</div>
+                      <div className="text-xl font-bold text-foreground">
+                        {formatMoney(charges?.reduce((acc, c) => acc + calculateChargeFinal(c.amount, c.discountPercentage), 0) || 0)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium text-emerald-600 uppercase">{t("payments.totalPaid")}</div>
+                      <div className="text-xl font-bold text-emerald-600">
+                        {formatMoney(
+                          charges?.reduce((acc, c) => {
+                            const cPayments = payments?.filter(p => p.chargeId === c.id) || [];
+                            return acc + cPayments.reduce((pSum, p) => pSum + p.amount, 0);
+                          }, 0) || 0
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-medium text-amber-600 uppercase">{t("payments.totalOutstanding")}</div>
+                      <div className="text-xl font-bold text-amber-600">
+                        {formatMoney(
+                          charges?.reduce((acc, c) => {
+                            const final = calculateChargeFinal(c.amount, c.discountPercentage);
+                            const cPayments = payments?.filter(p => p.chargeId === c.id) || [];
+                            const paid = cPayments.reduce((pSum, p) => pSum + p.amount, 0);
+                            return acc + Math.max(0, final - paid);
+                          }, 0) || 0
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

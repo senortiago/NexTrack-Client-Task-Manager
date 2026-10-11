@@ -2,13 +2,15 @@ import { useState } from "react";
 import { useParams, Link } from "wouter";
 import { useClient } from "@/hooks/use-clients";
 import { useProjects } from "@/hooks/use-projects";
+import { useTasks } from "@/hooks/use-tasks";
 import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ProjectForm } from "@/components/forms/project-form";
 import { ArrowLeft, Building, Mail, FolderPlus, Clock, CheckCircle2 } from "lucide-react";
-import { format } from "date-fns";
+import { format, type Locale } from "date-fns";
 import { de, el, enUS, es, fr, it } from "date-fns/locale";
 
 export default function ClientView() {
@@ -20,6 +22,7 @@ export default function ClientView() {
   
   const { data: client, isLoading: loadingClient } = useClient(clientId);
   const { data: projects, isLoading: loadingProjects } = useProjects(clientId);
+  const { data: allTasks } = useTasks();
   
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
@@ -89,19 +92,37 @@ export default function ClientView() {
               </div>
             ) : (
               <div className="divide-y divide-border/30">
-                {activeProjects.map(project => (
-                  <div key={project.id} className="p-5 flex items-center justify-between group hover:bg-muted/30 transition-colors">
-                    <div>
-                      <Link href={`/projects/${project.id}`} className="font-medium text-foreground hover:text-primary transition-colors text-lg">
-                        {project.name}
-                      </Link>
-                      <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{project.description || t("projects.noDescriptionShort")}</p>
+                {activeProjects.map(project => {
+                  const projectTasks = allTasks?.filter(t => t.projectId === project.id) || [];
+                  const completedTasks = projectTasks.filter(t => t.status === 'done').length;
+                  const totalTasks = projectTasks.length;
+                  const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+                  return (
+                    <div key={project.id} className="p-5 grid grid-cols-1 sm:grid-cols-12 items-start sm:items-center gap-4 group hover:bg-muted/30 transition-colors">
+                      <div className="min-w-0 sm:col-span-6">
+                        <Link href={`/projects/${project.id}`} className="font-medium text-foreground hover:text-primary transition-colors text-lg truncate block">
+                          {project.name}
+                        </Link>
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-1">{project.description || t("projects.noDescriptionShort")}</p>
+                      </div>
+
+                      <div className="w-full sm:col-span-4 flex flex-col gap-1">
+                        <div className="flex justify-between w-full text-xs text-muted-foreground">
+                          <span className="font-medium text-foreground">{progressPercent}%</span>
+                          <span>{totalTasks > 0 ? `${completedTasks}/${totalTasks}` : "—"}</span>
+                        </div>
+                        <Progress value={progressPercent} className="h-1.5 w-full bg-muted" />
+                      </div>
+
+                      <div className="sm:col-span-2 flex justify-start sm:justify-end">
+                        <Link href={`/projects/${project.id}`}>
+                          <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">{t("common.view")}</Button>
+                        </Link>
+                      </div>
                     </div>
-                    <Link href={`/projects/${project.id}`}>
-                      <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">{t("common.view")}</Button>
-                    </Link>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>

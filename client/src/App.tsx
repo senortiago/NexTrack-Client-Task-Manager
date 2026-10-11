@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { AppHeader } from "@/components/layout/app-header";
 import { ThemeProvider } from "next-themes";
 import { LanguageProvider } from "@/hooks/use-language";
 import { CurrencyProvider } from "@/hooks/use-currency";
@@ -52,9 +53,7 @@ function App() {
               <div className="flex h-screen w-full bg-background overflow-hidden">
                 <AppSidebar />
                 <div className="flex flex-col flex-1 overflow-hidden">
-                  <header className="flex items-center h-14 px-4 border-b border-border/40 bg-background/95 backdrop-blur z-10 shrink-0 sticky top-0">
-                    <SidebarTrigger className="hover-elevate bg-muted/50 border border-border/50" />
-                  </header>
+                  <AppHeader />
                   <main className="flex-1 overflow-y-auto bg-muted/10 relative">
                     <Router />
                   </main>

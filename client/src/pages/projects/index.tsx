@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useProjects, useDeleteProject } from "@/hooks/use-projects";
 import { useClients } from "@/hooks/use-clients";
+import { useTasks } from "@/hooks/use-tasks";
 import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ProjectForm } from "@/components/forms/project-form";
 import { FolderPlus, Trash2, Edit, ChevronRight } from "lucide-react";
@@ -25,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 export default function ProjectsPage() {
   const { data: projects, isLoading: loadingProjects } = useProjects();
   const { data: clients } = useClients();
+  const { data: allTasks } = useTasks();
   const deleteProject = useDeleteProject();
   const { toast } = useToast();
   const { t } = useLanguage();
@@ -88,22 +91,27 @@ export default function ProjectsPage() {
         <div className="grid grid-cols-1 gap-4">
           {projects?.map((project) => {
             const client = clients?.find(c => c.id === project.clientId);
+            const projectTasks = allTasks?.filter(t => t.projectId === project.id) || [];
+            const completedTasks = projectTasks.filter(t => t.status === 'done').length;
+            const totalTasks = projectTasks.length;
+            const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : (project.status === 'completed' ? 100 : 0);
+
             return (
               <Card key={project.id} className="group hover-elevate transition-all border-border/60 hover:border-primary/20 overflow-hidden relative">
                 <CardContent className="p-0 flex items-center">
                   <div className={`w-2 h-full absolute left-0 top-0 bottom-0 ${project.status === 'active' ? 'bg-primary' : 'bg-muted-foreground'}`}></div>
                   
-                  <div className="flex-1 p-5 pl-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-3">
-                        <Link href={`/projects/${project.id}`} className="font-semibold text-lg hover:text-primary transition-colors">
+                  <div className="flex-1 p-5 pl-6 grid grid-cols-1 lg:grid-cols-12 items-start lg:items-center gap-4">
+                    <div className="space-y-1 lg:col-span-5 min-w-0">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <Link href={`/projects/${project.id}`} className="font-semibold text-lg hover:text-primary transition-colors truncate">
                           {project.name}
                         </Link>
-                        <Badge variant={project.status === 'active' ? "default" : "secondary"} className="no-default-active-elevate">
+                        <Badge variant={project.status === 'active' ? "default" : "secondary"} className="no-default-active-elevate shrink-0">
                           {project.status === 'active' ? t("status.active") : t("status.completed")}
                         </Badge>
                       </div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-muted-foreground truncate">
                         {client ? (
                           <span>{t("projects.client")}: <Link href={`/clients/${client.id}`} className="hover:underline">{client.name}</Link></span>
                         ) : (
@@ -111,8 +119,20 @@ export default function ProjectsPage() {
                         )}
                       </div>
                     </div>
+
+                    <div className="w-full lg:col-span-4 space-y-1.5 py-1">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-semibold text-foreground flex items-center gap-1.5">
+                          {t("projects.progress")}: {progressPercent}%
+                        </span>
+                        <span className="text-muted-foreground">
+                          {totalTasks > 0 ? `${completedTasks}/${totalTasks} ${t("projects.tasksCompleted")}` : t("projects.noTasksYet")}
+                        </span>
+                      </div>
+                      <Progress value={progressPercent} className="h-2 bg-muted" />
+                    </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-start lg:justify-end gap-2 lg:col-span-3">
                       <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <Dialog open={editingProject === project.id} onOpenChange={(open) => setEditingProject(open ? project.id : null)}>
                           <DialogTrigger asChild>
